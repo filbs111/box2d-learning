@@ -3,9 +3,13 @@ var ctx;
 var world;
 
 var initscount=0;
+var currentTime;
+var timeStep = 1000/100;	//milliseconds. 100fps
+var maxUpdatesPerFrame = 5;
 
 function start(){
 	init();
+	currentTime = (new Date()).getTime();
 	update();
 }
 
@@ -87,13 +91,27 @@ function init(){
 }; // init()
   
 function update() {
-   world.Step(
-		 1 / 60   //frame-rate
-	  ,  10       //velocity iterations
-	  ,  10       //position iterations
-   );
-   world.DrawDebugData();
-   world.ClearForces();
- 
+	
+   var timeNow = (new Date()).getTime();
+   var forceCatchup = false;
+   var updatesRequired = Math.floor((timeNow-currentTime)/timeStep);
+   if (updatesRequired>maxUpdatesPerFrame){
+	   //console.log("capping num updates to maxUpdatesPerFrame");
+	   updatesRequired = maxUpdatesPerFrame;
+	   currentTime = timeNow;
+   }else{
+	   currentTime+=timeStep*updatesRequired;
+   }
+   if (updatesRequired>0){
+	   for (var ii=0;ii<updatesRequired;ii++){
+		   world.Step(
+				 0.001*timeStep   //seconds
+			  ,  10       //velocity iterations
+			  ,  10       //position iterations
+		   );
+		   world.ClearForces();
+	   }
+	   world.DrawDebugData();
+   }
    requestAnimationFrame(update);
 }; // update()
