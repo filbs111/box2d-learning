@@ -6,9 +6,28 @@ var initscount=0;
 var currentTime;
 var timeStep = 1000/100;	//milliseconds. 100fps
 var maxUpdatesPerFrame = 5;
+var playerBody;
+
+var   b2Vec2 = Box2D.Common.Math.b2Vec2
+        , b2BodyDef = Box2D.Dynamics.b2BodyDef
+        , b2Body = Box2D.Dynamics.b2Body
+        , b2FixtureDef = Box2D.Dynamics.b2FixtureDef
+        , b2Fixture = Box2D.Dynamics.b2Fixture
+        , b2World = Box2D.Dynamics.b2World
+        , b2MassData = Box2D.Collision.Shapes.b2MassData
+        , b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape
+        , b2CircleShape = Box2D.Collision.Shapes.b2CircleShape
+        , b2DebugDraw = Box2D.Dynamics.b2DebugDraw
+          ;
 
 function start(){
 	init();
+	
+	keyThing.setKeydownCallback(32,function(){			//32=space key
+		console.log("pressed the space bar");
+		playerBody.ApplyForce(new b2Vec2(0,-100), playerBody.GetWorldCenter());	//upward force
+	});
+	
 	currentTime = (new Date()).getTime();
 	update();
 }
@@ -20,18 +39,6 @@ function init(){
 	canvas = document.getElementById("b2dCanvas");
     ctx = canvas.getContext("2d");
 	
-	var   b2Vec2 = Box2D.Common.Math.b2Vec2
-        , b2BodyDef = Box2D.Dynamics.b2BodyDef
-        , b2Body = Box2D.Dynamics.b2Body
-        , b2FixtureDef = Box2D.Dynamics.b2FixtureDef
-        , b2Fixture = Box2D.Dynamics.b2Fixture
-        , b2World = Box2D.Dynamics.b2World
-        , b2MassData = Box2D.Collision.Shapes.b2MassData
-        , b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape
-        , b2CircleShape = Box2D.Collision.Shapes.b2CircleShape
-        , b2DebugDraw = Box2D.Dynamics.b2DebugDraw
-          ;
-     
        world = new b2World(
              new b2Vec2(0, 10)    //gravity
           ,  true                 //allow sleep
@@ -56,12 +63,12 @@ function init(){
        fixDef.shape = new b2PolygonShape;
        
        // half width, half height. eg actual height here is 1 unit
-       fixDef.shape.SetAsBox((600 / SCALE) / 2, (10/SCALE) / 2);
+       fixDef.shape.SetAsBox((canvas.width / SCALE) / 2, (10/SCALE) / 2);
        world.CreateBody(bodyDef).CreateFixture(fixDef);
      
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
-       for(var i = 0; i < 150; ++i) {
+       for(var i = 0; i < 100; ++i) {
           if(Math.random() > 0.5) {
              fixDef.shape = new b2PolygonShape;
              fixDef.shape.SetAsBox(
@@ -73,10 +80,27 @@ function init(){
                 Math.random() + 0.1 //radius
              );
           }
-          bodyDef.position.x = Math.random() * 25;
+          bodyDef.position.x = Math.random() * 20;
           bodyDef.position.y = Math.random() * 10;
           world.CreateBody(bodyDef).CreateFixture(fixDef);
        }
+	   
+	   //add a player triangle object
+		var points = [ [-0.5,0], [0.5, 0], [0, 1]];
+		var vecpoints = [];
+
+		for (var i = 0; i < points.length; i++) {
+			var vec = new b2Vec2();
+			vec.Set(points[i][0], points[i][1]);
+			vecpoints[i] = vec;
+		}
+		fixDef.shape = new b2PolygonShape;
+		fixDef.shape.SetAsArray(vecpoints, vecpoints.length);
+		bodyDef.position.x = 30;
+		bodyDef.position.y = 5;
+		playerBody = world.CreateBody(bodyDef);
+		playerBody.CreateFixture(fixDef);
+		   
      
        //setup debug draw
        var debugDraw = new b2DebugDraw();
@@ -87,7 +111,7 @@ function init(){
        debugDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit);
        world.SetDebugDraw(debugDraw);
      
-       setTimeout(init, 6000); //this restarts the simulation every 6 seconds.
+       setTimeout(init, 16000); //this restarts the simulation every 16 seconds.
 }; // init()
   
 function update() {
