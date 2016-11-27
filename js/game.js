@@ -7,6 +7,7 @@ var currentTime;
 var timeStep = 1000/100;	//milliseconds. 100fps
 var maxUpdatesPerFrame = 5;
 var playerBody;
+var thrustForce=15;
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
         , b2BodyDef = Box2D.Dynamics.b2BodyDef
@@ -22,10 +23,11 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
 
 function start(){
 	init();
-	
 	keyThing.setKeydownCallback(32,function(){			//32=space key
-		console.log("pressed the space bar");
 		playerBody.ApplyForce(new b2Vec2(0,-100), playerBody.GetWorldCenter());	//upward force
+	});
+	keyThing.setKeydownCallback(82,function(){			//82=R
+		init();
 	});
 	
 	currentTime = (new Date()).getTime();
@@ -100,8 +102,9 @@ function init(){
 		bodyDef.position.y = 5;
 		playerBody = world.CreateBody(bodyDef);
 		playerBody.CreateFixture(fixDef);
-		   
-     
+		playerBody.SetAngularDamping(10);
+		playerBody.SetAngle(Math.PI);
+	 
        //setup debug draw
        var debugDraw = new b2DebugDraw();
        debugDraw.SetSprite(ctx);
@@ -111,7 +114,6 @@ function init(){
        debugDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit);
        world.SetDebugDraw(debugDraw);
      
-       setTimeout(init, 16000); //this restarts the simulation every 16 seconds.
 }; // init()
   
 function update() {
@@ -128,6 +130,18 @@ function update() {
    }
    if (updatesRequired>0){
 	   for (var ii=0;ii<updatesRequired;ii++){
+		   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
+		   var turn = keyThing.rightKey() - keyThing.leftKey();
+		   if (turn!=0){
+			   playerBody.ApplyTorque(2*turn);
+		   }
+		   var thrust = thrustForce*keyThing.upKey();
+		   //console.log(thrust);
+		   var fwd = playerBody.GetTransform().R.col2;
+		   if (thrust!=0){
+		       playerBody.ApplyForce(new b2Vec2(thrust*fwd.x,thrust*fwd.y), playerBody.GetWorldCenter());
+		   }
+		   
 		   world.Step(
 				 0.001*timeStep   //seconds
 			  ,  10       //velocity iterations
