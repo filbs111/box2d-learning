@@ -100,7 +100,7 @@ function init(){
        }
 	   
 	   //add a player triangle object
-		var points = [ [-0.5,0], [0.5, 0], [0, 1]];
+		var points = [ [-0.5,-0.35], [0.5, -0.35], [0, 0.7]];
 		var vecpoints = [];
 
 		for (var i = 0; i < points.length; i++) {
@@ -145,7 +145,7 @@ function update() {
 		   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
 		   var turn = keyThing.rightKey() - keyThing.leftKey();
 		   if (turn!=0){
-			   playerBody.ApplyTorque(2*turn);
+			   playerBody.ApplyTorque(4*turn);
 		   }
 		   var thrust = thrustForce*keyThing.upKey();
 		   //console.log(thrust);
