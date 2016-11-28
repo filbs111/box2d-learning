@@ -1,3 +1,5 @@
+var debugCanvas;
+var debugCtx;
 var canvas;
 var ctx;
 var world;
@@ -18,7 +20,9 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
         , b2MassData = Box2D.Collision.Shapes.b2MassData
         , b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape
         , b2CircleShape = Box2D.Collision.Shapes.b2CircleShape
+		, b2Shape = Box2D.Collision.Shapes.b2Shape
         , b2DebugDraw = Box2D.Dynamics.b2DebugDraw
+
           ;
 
 function start(){
@@ -38,8 +42,11 @@ function init(){
 	initscount++;
 	console.log("init called. " + initscount);
 	
-	canvas = document.getElementById("b2dCanvas");
-    ctx = canvas.getContext("2d");
+	debugCanvas = document.getElementById("b2dCanvas");
+    debugCtx = debugCanvas.getContext("2d");
+	
+	canvas = document.getElementById("canvas2d");
+    ctx = debugCanvas.getContext("2d");
 	
        world = new b2World(
              new b2Vec2(0, 10)    //gravity
@@ -59,13 +66,13 @@ function init(){
        bodyDef.type = b2Body.b2_staticBody;
        
        // positions the center of the object (not upper left!)
-       bodyDef.position.x = canvas.width / 2 / SCALE;
-       bodyDef.position.y = canvas.height / SCALE;
+       bodyDef.position.x = debugCanvas.width / 2 / SCALE;
+       bodyDef.position.y = debugCanvas.height / SCALE;
        
        fixDef.shape = new b2PolygonShape;
        
        // half width, half height. eg actual height here is 1 unit
-       fixDef.shape.SetAsBox((canvas.width / SCALE) / 2, (10/SCALE) / 2);
+       fixDef.shape.SetAsBox((debugCanvas.width / SCALE) / 2, (10/SCALE) / 2);
        world.CreateBody(bodyDef).CreateFixture(fixDef);
      
        //create some objects
@@ -107,7 +114,7 @@ function init(){
 	 
        //setup debug draw
        var debugDraw = new b2DebugDraw();
-       debugDraw.SetSprite(ctx);
+       debugDraw.SetSprite(debugCtx);
        debugDraw.SetDrawScale(SCALE);
        debugDraw.SetFillAlpha(0.3);
        debugDraw.SetLineThickness(1.0);
@@ -149,7 +156,102 @@ function update() {
 		   );
 		   world.ClearForces();
 	   }
-	   world.DrawDebugData();
+	   //world.DrawDebugData();
+	   draw_world(world, ctx);
    }
    requestAnimationFrame(update);
 }; // update()
+
+
+function draw_world(world, context) {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle="#AAAAAA";
+  context.strokeStyle="#000000";
+  
+  //Draw the bodies
+  for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+    //A body has many fixtures
+    for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
+      var shape = f.GetShape();
+      var shapeType = shape.GetType();
+      if (isNaN(b.GetPosition().x)) {
+        alert('Invalid Position : ' + b.GetPosition().x);
+      } else {
+        drawShape(b, shape, context);
+      }
+    }
+ 
+  }
+}
+
+
+function drawShape(body, shape, context) {
+  var scale=30;
+  context.beginPath();
+
+  switch (shape.GetType()) {
+
+  case b2Shape.e_circleShape:
+    {
+      var circle = shape;
+      var pos = body.GetPosition();
+      var r = shape.GetRadius();
+      var segments = 16.0;
+      var theta = 0.0;
+      var dtheta = 2.0 * Math.PI / segments;
+
+      // draw circle
+      context.moveTo((pos.x + r) * scale, pos.y * scale);
+
+      for (var i = 0; i < segments; i++) {
+        var d = new b2Vec2(r * Math.cos(theta), r * Math.sin(theta));
+
+        var v = pos.Copy();
+        v.Add(d);
+        context.lineTo(v.x * scale, v.y * scale);
+        theta += dtheta;
+      }
+
+      context.lineTo((pos.x + r) * scale, pos.y * scale);
+
+      // draw radius line
+      context.moveTo(pos.x * scale, pos.y * scale);
+      var ax = body.GetTransform().R.col1;
+
+      var pos2 = new b2Vec2(pos.x + r * ax.x, pos.y + r * ax.y);
+      context.lineTo(pos2.x * scale, pos2.y * scale);
+    }
+    break;
+
+  case b2Shape.e_polygonShape:
+    {
+      var poly = shape;
+      var vert = shape.GetVertices();
+
+      var position = body.GetPosition();
+
+      var tV = position.Copy();
+      var a = vert[0].Copy();
+      a.MulM(body.GetTransform().R);
+      tV.Add(a);
+
+      context.moveTo(tV.x * scale, tV.y * scale);
+
+      for (var i = 0; i < vert.length; i++) {
+        var v = vert[i].Copy();
+        v.MulM(body.GetTransform().R);
+        v.Add(position);
+        context.lineTo(v.x * scale, v.y * scale);
+      }
+
+      context.lineTo(tV.x * scale, tV.y * scale);
+    }
+
+    break;
+  }
+  //this will fill a shape
+  context.fill();
+
+  //this will create the outline of a shape
+  context.stroke();
+}
