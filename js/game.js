@@ -156,6 +156,7 @@ function update() {
 		   );
 		   world.ClearForces();
 	   }
+	   //debugCtx.setTransform(1, 0, 0, 1, 100, 0);  //can transform debug canvas anyway, but should then also manually clear it
 	   //world.DrawDebugData();
 	   draw_world(world, ctx);
    }
@@ -164,7 +165,12 @@ function update() {
 
 
 function draw_world(world, context) {
+  var scale=30;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   context.clearRect(0, 0, canvas.width, canvas.height);
+  
+  ctx.setTransform(1, 0, 0, 1, canvas.width/2-scale*playerBody.GetTransform().position.x, 
+								canvas.height/2-scale*playerBody.GetTransform().position.y);  //centred player
   context.fillStyle="#AAAAAA";
   context.strokeStyle="#000000";
   
@@ -182,11 +188,8 @@ function draw_world(world, context) {
     }
  
   }
-}
-
-
-function drawShape(body, shape, context) {
-  var scale=30;
+  
+  function drawShape(body, shape, context) {
   context.beginPath();
 
   switch (shape.GetType()) {
@@ -254,4 +257,7 @@ function drawShape(body, shape, context) {
 
   //this will create the outline of a shape
   context.stroke();
+  } 
 }
+
+
