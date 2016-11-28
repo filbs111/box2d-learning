@@ -3,6 +3,7 @@ var debugCtx;
 var canvas;
 var ctx;
 var world;
+var stats;
 
 var initscount=0;
 var currentTime;
@@ -26,6 +27,10 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
           ;
 
 function start(){
+	stats = new Stats();
+	stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+	document.body.appendChild( stats.dom );
+	
 	init();
 	keyThing.setKeydownCallback(32,function(){			//32=space key
 		playerBody.ApplyForce(new b2Vec2(0,-100), playerBody.GetWorldCenter());	//upward force
@@ -77,7 +82,7 @@ function init(){
      
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
-       for(var i = 0; i < 100; ++i) {
+       for(var i = 0; i < 8; ++i) {
           if(Math.random() > 0.5) {
              fixDef.shape = new b2PolygonShape;
              fixDef.shape.SetAsBox(
@@ -156,9 +161,11 @@ function update() {
 		   );
 		   world.ClearForces();
 	   }
+	   stats.begin();
 	   //debugCtx.setTransform(1, 0, 0, 1, 100, 0);  //can transform debug canvas anyway, but should then also manually clear it
 	   //world.DrawDebugData();
 	   draw_world(world, ctx);
+	   stats.end();
    }
    requestAnimationFrame(update);
 }; // update()
