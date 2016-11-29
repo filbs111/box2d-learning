@@ -118,7 +118,7 @@ function init(){
 		playerBody.SetAngle(Math.PI);
 		
 		playerBody.oldPos = new b2Vec2();
-		playerBody.oldPos.Copy(bodyDef.position);
+		playerBody.oldPos.Set(bodyDef.position.x, bodyDef.position.y);
 
        //setup debug draw
        var debugDraw = new b2DebugDraw();
@@ -150,7 +150,7 @@ function update(timeNow) {
    }
    if (updatesRequired>0){
 	   for (var ii=0;ii<updatesRequired;ii++){
-		   playerBody.oldPos.Copy(playerBody.GetTransform().position;
+		   playerBody.oldPos.Set(playerBody.GetTransform().position.x, playerBody.GetTransform().position.y);
 		   
 		   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
 		   var turn = keyThing.rightKey() - keyThing.leftKey();
