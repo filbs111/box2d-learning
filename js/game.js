@@ -7,7 +7,7 @@ var stats;
 
 var initscount=0;
 var currentTime;
-var timeStep = 1000/100;	//milliseconds. 100fps
+var timeStep = 1000/60;	//milliseconds. 60fps
 var maxUpdatesPerFrame = 5;
 var playerBody;
 var thrustForce=15;
@@ -40,7 +40,7 @@ function start(){
 	});
 	
 	currentTime = (new Date()).getTime();
-	update();
+	requestAnimationFrame(update);
 }
 
 function init(){
@@ -116,7 +116,10 @@ function init(){
 		playerBody.CreateFixture(fixDef);
 		playerBody.SetAngularDamping(10);
 		playerBody.SetAngle(Math.PI);
-	 
+		
+		playerBody.oldPos = new b2Vec2();
+		playerBody.oldPos.Set(bodyDef.position.x, bodyDef.position.y);
+
        //setup debug draw
        var debugDraw = new b2DebugDraw();
        debugDraw.SetSprite(debugCtx);
@@ -128,20 +131,27 @@ function init(){
      
 }; // init()
   
-function update() {
-	
-   var timeNow = (new Date()).getTime();
+function update(timeNow) {
+   
+   //var timeNow = (new Date()).getTime();
    var forceCatchup = false;
-   var updatesRequired = Math.floor((timeNow-currentTime)/timeStep);
+   var timeDiff = timeNow-currentTime;
+   var updatesRequired = timeDiff/timeStep;
+   var remainderFraction = updatesRequired - Math.floor(updatesRequired);
+   updatesRequired = Math.floor(updatesRequired);
    if (updatesRequired>maxUpdatesPerFrame){
 	   //console.log("capping num updates to maxUpdatesPerFrame");
 	   updatesRequired = maxUpdatesPerFrame;
 	   currentTime = timeNow;
+	   remainderFraction=0;
+	   console.log("!");
    }else{
 	   currentTime+=timeStep*updatesRequired;
    }
    if (updatesRequired>0){
 	   for (var ii=0;ii<updatesRequired;ii++){
+		   playerBody.oldPos.Set(playerBody.GetTransform().position.x, playerBody.GetTransform().position.y);
+		   
 		   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
 		   var turn = keyThing.rightKey() - keyThing.leftKey();
 		   if (turn!=0){
@@ -161,23 +171,28 @@ function update() {
 		   );
 		   world.ClearForces();
 	   }
-	   stats.begin();
-	   //debugCtx.setTransform(1, 0, 0, 1, 100, 0);  //can transform debug canvas anyway, but should then also manually clear it
-	   //world.DrawDebugData();
-	   draw_world(world, ctx);
-	   stats.end();
+	   
    }
+   stats.begin();
+   //debugCtx.setTransform(1, 0, 0, 1, 100, 0);  //can transform debug canvas anyway, but should then also manually clear it
+   //world.DrawDebugData();
+   draw_world(world, ctx, remainderFraction);
+   stats.end();
    requestAnimationFrame(update);
 }; // update()
 
 
-function draw_world(world, context) {
+function draw_world(world, context, remainderFraction) {
   var scale=30;
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   context.clearRect(0, 0, canvas.width, canvas.height);
+    
+  playerBody.interpPos = new b2Vec2();
+  playerBody.interpPos.Set(playerBody.GetTransform().position.x * (remainderFraction)  +  (1-remainderFraction)*playerBody.oldPos.x ,
+						playerBody.GetTransform().position.y * (remainderFraction)  +  (1-remainderFraction)*playerBody.oldPos.y );
   
-  ctx.setTransform(1, 0, 0, 1, canvas.width/2-scale*playerBody.GetTransform().position.x, 
-								canvas.height/2-scale*playerBody.GetTransform().position.y);  //centred player
+  ctx.setTransform(1, 0, 0, 1, canvas.width/2-scale*playerBody.interpPos.x, 
+								canvas.height/2-scale*playerBody.interpPos.y);  //centred player
   context.fillStyle="#AAAAAA";
   context.strokeStyle="#000000";
   
@@ -238,8 +253,8 @@ function draw_world(world, context) {
       var poly = shape;
       var vert = shape.GetVertices();
 
-      var position = body.GetPosition();
-
+      var position = body.interpPos || body.GetPosition();
+	  
       var tV = position.Copy();
       var a = vert[0].Copy();
       a.MulM(body.GetTransform().R);
