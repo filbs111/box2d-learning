@@ -23,13 +23,34 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
         , b2CircleShape = Box2D.Collision.Shapes.b2CircleShape
 		, b2Shape = Box2D.Collision.Shapes.b2Shape
         , b2DebugDraw = Box2D.Dynamics.b2DebugDraw
-
           ;
 
-function start(){
+window.onresize = aspectFitCanvas;		
+
+function aspectFitCanvas(evt) {
+    var ww = window.innerWidth;
+    var wh = window.innerHeight;
+	if ( ww * canvas.height > wh * canvas.width ) {
+        canvas.style.height = "" + wh + "px";
+        canvas.style.width = "" + ( wh * canvas.width / canvas.height) + "px";
+    } else {
+        canvas.style.width = "" + ww + "px";
+        canvas.style.height = "" + ( ww * canvas.height / canvas.width ) + "px";
+    }
+}		  
+		  
+function start(){	
 	stats = new Stats();
 	stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
 	document.body.appendChild( stats.dom );
+	
+	debugCanvas = document.getElementById("b2dCanvas");
+    debugCtx = debugCanvas.getContext("2d");
+	debugCanvas.style.display="none";
+
+	canvas = document.getElementById("canvas2d");
+    ctx = canvas.getContext("2d");
+	aspectFitCanvas();
 	
 	init();
 	keyThing.setKeydownCallback(32,function(){			//32=space key
@@ -37,6 +58,9 @@ function start(){
 	});
 	keyThing.setKeydownCallback(82,function(){			//82=R
 		init();
+	});
+	keyThing.setKeydownCallback(70,function(){			//70=F
+		goFullscreen(canvas);
 	});
 	
 	currentTime = (new Date()).getTime();
@@ -46,12 +70,6 @@ function start(){
 function init(){
 	initscount++;
 	console.log("init called. " + initscount);
-	
-	debugCanvas = document.getElementById("b2dCanvas");
-    debugCtx = debugCanvas.getContext("2d");
-	
-	canvas = document.getElementById("canvas2d");
-    ctx = debugCanvas.getContext("2d");
 	
        world = new b2World(
              new b2Vec2(0, 10)    //gravity
@@ -300,6 +318,18 @@ function draw_world(world, context) {
   //this will create the outline of a shape
   context.stroke();
   } 
+}
+
+function goFullscreen(elem){
+	if (elem.requestFullscreen) {
+	i.requestFullscreen();
+	} else if (elem.webkitRequestFullscreen) {
+		elem.webkitRequestFullscreen();
+	} else if (elem.mozRequestFullScreen) {
+		elem.mozRequestFullScreen();
+	} else if (elem.msRequestFullscreen) {
+		elem.msRequestFullscreen();
+	}
 }
 
 

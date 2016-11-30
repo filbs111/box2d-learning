@@ -1,0 +1,14 @@
+body {
+  padding:0;
+  margin:0;
+  background:#666;
+  overflow-x:hidden;	/* will not be necessary once no longer need vertical scroll bar (screens are sized without taking
+							horizontal space used by vertical scroll bar into account) */
+}
+canvas {
+  display:block;
+  margin:0px auto 0;
+  border:0px;
+  background:#aff;
+  background-color:white;
+}
