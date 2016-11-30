@@ -30,13 +30,19 @@ window.onresize = aspectFitCanvas;
 function aspectFitCanvas(evt) {
     var ww = window.innerWidth;
     var wh = window.innerHeight;
+	var desiredAspect=2;
 	if ( ww * canvas.height > wh * canvas.width ) {
         canvas.style.height = "" + wh + "px";
-        canvas.style.width = "" + ( wh * canvas.width / canvas.height) + "px";
+        canvas.style.width = "" + ( wh * desiredAspect ) + "px";
+		canvas.height = wh;
+		canvas.width = ( wh * desiredAspect );
     } else {
         canvas.style.width = "" + ww + "px";
-        canvas.style.height = "" + ( ww * canvas.height / canvas.width ) + "px";
+        canvas.style.height = "" + ( ww / desiredAspect ) + "px";
+		canvas.width = ww;
+		canvas.height = ( ww / desiredAspect );
     }
+	canvas.scale = canvas.width / 1000;	//apply some scale factor to drawing which is 1 for width 1000px
 }		  
 		  
 function start(){	
@@ -224,7 +230,7 @@ function calcInterpPositions(remainderFraction){
 }
 
 function draw_world(world, context) {
-  var scale=30;
+  var scale=15*canvas.scale;
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   context.clearRect(0, 0, canvas.width, canvas.height);
   
