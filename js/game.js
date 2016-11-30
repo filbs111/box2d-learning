@@ -31,16 +31,19 @@ function aspectFitCanvas(evt) {
     var ww = window.innerWidth;
     var wh = window.innerHeight;
 	var desiredAspect=2;
+	var pixelRatio=1;		//set to 0.5 to double size of canvas pixels on screen etc
 	if ( ww * canvas.height > wh * canvas.width ) {
+		var cw = wh * desiredAspect;
         canvas.style.height = "" + wh + "px";
-        canvas.style.width = "" + ( wh * desiredAspect ) + "px";
-		canvas.height = wh;
-		canvas.width = ( wh * desiredAspect );
+        canvas.style.width = "" + cw + "px";
+		canvas.height = wh*pixelRatio;
+		canvas.width = cw*pixelRatio;
     } else {
+		var ch = ww / desiredAspect;
         canvas.style.width = "" + ww + "px";
-        canvas.style.height = "" + ( ww / desiredAspect ) + "px";
-		canvas.width = ww;
-		canvas.height = ( ww / desiredAspect );
+        canvas.style.height = "" + ch + "px";
+		canvas.width = ww*pixelRatio;
+		canvas.height = ch*pixelRatio;
     }
 	canvas.scale = canvas.width / 1000;	//apply some scale factor to drawing which is 1 for width 1000px
 }		  
