@@ -194,9 +194,15 @@ function copyPositions(){
 }
 function calcInterpPositions(remainderFraction){
 	var oneMinus = 1-remainderFraction;
-	playerBody.interpPos = new b2Vec2();
-    playerBody.interpPos.Set(playerBody.GetTransform().position.x * (remainderFraction)  +  oneMinus*playerBody.oldPos.x ,
-						playerBody.GetTransform().position.y * (remainderFraction)  +  oneMinus*playerBody.oldPos.y );
+	for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+		var oldPos = b.oldPos;
+		if (oldPos){
+			var currentPos = b.GetTransform().position;
+			b.interpPos = new b2Vec2();
+			b.interpPos.Set(currentPos.x*remainderFraction + oldPos.x*oneMinus,
+							currentPos.y*remainderFraction + oldPos.y*oneMinus );
+		}
+	}
 }
 
 function draw_world(world, context) {
@@ -232,7 +238,8 @@ function draw_world(world, context) {
   case b2Shape.e_circleShape:
     {
       var circle = shape;
-      var pos = body.GetPosition();
+      var pos = body.interpPos || body.GetPosition();
+	  
       var r = shape.GetRadius();
       var segments = 16.0;
       var theta = 0.0;
