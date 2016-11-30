@@ -149,29 +149,13 @@ function update(timeNow) {
 	   currentTime+=timeStep*updatesRequired;
    }
    if (updatesRequired>0){
-	   for (var ii=0;ii<updatesRequired;ii++){
-		   playerBody.oldPos.Set(playerBody.GetTransform().position.x, playerBody.GetTransform().position.y);
-		   
-		   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
-		   var turn = keyThing.rightKey() - keyThing.leftKey();
-		   if (turn!=0){
-			   playerBody.ApplyTorque(4*turn);
+	   if (updatesRequired>1){
+		   for (var ii=1;ii<updatesRequired;ii++){
+			   iterateMechanics();
 		   }
-		   var thrust = thrustForce*keyThing.upKey();
-		   //console.log(thrust);
-		   var fwd = playerBody.GetTransform().R.col2;
-		   if (thrust!=0){
-		       playerBody.ApplyForce(new b2Vec2(thrust*fwd.x,thrust*fwd.y), playerBody.GetWorldCenter());
-		   }
-		   
-		   world.Step(
-				 0.001*timeStep   //seconds
-			  ,  10       //velocity iterations
-			  ,  10       //position iterations
-		   );
-		   world.ClearForces();
 	   }
-	   
+	   playerBody.oldPos.Set(playerBody.GetTransform().position.x, playerBody.GetTransform().position.y);
+	   iterateMechanics();
    }
    stats.begin();
    //debugCtx.setTransform(1, 0, 0, 1, 100, 0);  //can transform debug canvas anyway, but should then also manually clear it
@@ -179,6 +163,27 @@ function update(timeNow) {
    draw_world(world, ctx, remainderFraction);
    stats.end();
    requestAnimationFrame(update);
+   
+   function iterateMechanics(){
+	   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
+	   var turn = keyThing.rightKey() - keyThing.leftKey();
+	   if (turn!=0){
+		   playerBody.ApplyTorque(4*turn);
+	   }
+	   var thrust = thrustForce*keyThing.upKey();
+	   //console.log(thrust);
+	   var fwd = playerBody.GetTransform().R.col2;
+	   if (thrust!=0){
+		   playerBody.ApplyForce(new b2Vec2(thrust*fwd.x,thrust*fwd.y), playerBody.GetWorldCenter());
+	   }
+	   
+	   world.Step(
+			 0.001*timeStep   //seconds
+		  ,  10       //velocity iterations
+		  ,  10       //position iterations
+	   );
+	   world.ClearForces();
+   }
 }; // update()
 
 
