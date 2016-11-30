@@ -78,8 +78,8 @@ function init(){
        
        // half width, half height. eg actual height here is 1 unit
        fixDef.shape.SetAsBox((debugCanvas.width / SCALE) / 2, (10/SCALE) / 2);
-       world.CreateBody(bodyDef).CreateFixture(fixDef);
-     
+       var levelBody = world.CreateBody(bodyDef).CreateFixture(fixDef);
+
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
        for(var i = 0; i < 8; ++i) {
@@ -117,9 +117,6 @@ function init(){
 		playerBody.SetAngularDamping(10);
 		playerBody.SetAngle(Math.PI);
 		
-		playerBody.oldPos = new b2Vec2();
-		playerBody.oldPos.Set(bodyDef.position.x, bodyDef.position.y);
-
        //setup debug draw
        var debugDraw = new b2DebugDraw();
        debugDraw.SetSprite(debugCtx);
@@ -128,7 +125,8 @@ function init(){
        debugDraw.SetLineThickness(1.0);
        debugDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit);
        world.SetDebugDraw(debugDraw);
-     
+	   
+	   copyPositions();
 }; // init()
   
 function update(timeNow) {
@@ -154,13 +152,14 @@ function update(timeNow) {
 			   iterateMechanics();
 		   }
 	   }
-	   playerBody.oldPos.Set(playerBody.GetTransform().position.x, playerBody.GetTransform().position.y);
+	   copyPositions();
 	   iterateMechanics();
    }
    stats.begin();
    //debugCtx.setTransform(1, 0, 0, 1, 100, 0);  //can transform debug canvas anyway, but should then also manually clear it
    //world.DrawDebugData();
-   draw_world(world, ctx, remainderFraction);
+   calcInterpPositions(remainderFraction);
+   draw_world(world, ctx);
    stats.end();
    requestAnimationFrame(update);
    
@@ -186,15 +185,24 @@ function update(timeNow) {
    }
 }; // update()
 
+function copyPositions(){
+   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+	    var currentPos = b.GetTransform().position;
+		b.oldPos = b.oldPos || new b2Vec2();
+		b.oldPos.Set(currentPos.x, currentPos.y);
+	}
+}
+function calcInterpPositions(remainderFraction){
+	var oneMinus = 1-remainderFraction;
+	playerBody.interpPos = new b2Vec2();
+    playerBody.interpPos.Set(playerBody.GetTransform().position.x * (remainderFraction)  +  oneMinus*playerBody.oldPos.x ,
+						playerBody.GetTransform().position.y * (remainderFraction)  +  oneMinus*playerBody.oldPos.y );
+}
 
-function draw_world(world, context, remainderFraction) {
+function draw_world(world, context) {
   var scale=30;
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   context.clearRect(0, 0, canvas.width, canvas.height);
-    
-  playerBody.interpPos = new b2Vec2();
-  playerBody.interpPos.Set(playerBody.GetTransform().position.x * (remainderFraction)  +  (1-remainderFraction)*playerBody.oldPos.x ,
-						playerBody.GetTransform().position.y * (remainderFraction)  +  (1-remainderFraction)*playerBody.oldPos.y );
   
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-scale*playerBody.interpPos.x, 
 								canvas.height/2-scale*playerBody.interpPos.y);  //centred player
