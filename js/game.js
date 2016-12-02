@@ -92,21 +92,25 @@ function init(){
        fixDef.friction = 0.5;
        fixDef.restitution = 0.2;
      
-       var bodyDef = new b2BodyDef;
-     
+	   fixDef.shape = new b2PolygonShape;
+	   var bodyDef = new b2BodyDef;
        //create ground
        bodyDef.type = b2Body.b2_staticBody;
        
-       // positions the center of the object (not upper left!)
-       bodyDef.position.x = debugCanvas.width / 2 / SCALE;
-       bodyDef.position.y = debugCanvas.height / SCALE;
+	   var levelBoxes = [[0,debugCanvas.height-10,debugCanvas.width,20]];
+	   var currentBox, halfwidth, halfheight;
+	   for (bb in levelBoxes){
+		   currentBox = levelBoxes[bb];
+		   halfwidth = currentBox[2]/2;
+		   halfheight = currentBox[3]/2;
+		   // positions the center of the object (not upper left!)
+	       bodyDef.position.x = (currentBox[0]+halfwidth) / SCALE;
+           bodyDef.position.y = (currentBox[1]+halfheight) / SCALE;
        
-       fixDef.shape = new b2PolygonShape;
-       
-       // half width, half height. eg actual height here is 1 unit
-       fixDef.shape.SetAsBox((debugCanvas.width / SCALE) / 2, (10/SCALE) / 2);
-       var levelBody = world.CreateBody(bodyDef).CreateFixture(fixDef);
-
+	       fixDef.shape.SetAsBox(halfwidth / SCALE, halfheight / SCALE);
+           world.CreateBody(bodyDef).CreateFixture(fixDef);
+	   }
+	   
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
        for(var i = 0; i < 8; ++i) {
