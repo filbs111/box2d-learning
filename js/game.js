@@ -7,7 +7,7 @@ var stats;
 
 var initscount=0;
 var currentTime;
-var timeStep = 1000/60;	//milliseconds. 60fps
+var timeStep = 1000/30;	//milliseconds. 30fps (mechanics)
 var maxUpdatesPerFrame = 5;
 var playerBody;
 var thrustForce=15;
@@ -31,7 +31,7 @@ function aspectFitCanvas(evt) {
     var ww = window.innerWidth;
     var wh = window.innerHeight;
 	var desiredAspect=2;
-	var pixelRatio=1;		//set to 0.5 to double size of canvas pixels on screen etc
+	var pixelRatio=0.5;		//set to 0.5 to double size of canvas pixels on screen etc
 	if ( ww * canvas.height > wh * canvas.width ) {
 		var cw = wh * desiredAspect;
         canvas.style.height = "" + wh + "px";
@@ -70,6 +70,9 @@ function start(){
 	});
 	keyThing.setKeydownCallback(70,function(){			//70=F
 		goFullscreen(canvas);
+	});
+	keyThing.setKeydownCallback(66,function(){			//66=B
+		dropBomb();
 	});
 	
 	currentTime = (new Date()).getTime();
@@ -121,16 +124,16 @@ function init(){
 	   
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
-       for(var i = 0; i < 100; ++i) {
+       for(var i = 0; i < 500; ++i) {
           if(Math.random() > 0.5) {
              fixDef.shape = new b2PolygonShape;
              fixDef.shape.SetAsBox(
-                   Math.random() + 0.1 //half width
-                ,  Math.random() + 0.1 //half height
+                   Math.random()/3 + 0.1 //half width
+                ,  Math.random()/3 + 0.1 //half height
              );
           } else {
              fixDef.shape = new b2CircleShape(
-                Math.random() + 0.1 //radius
+                Math.random()/2 + 0.1 //radius
              );
           }
           bodyDef.position.x = 10 + Math.random() * 20;
@@ -149,6 +152,8 @@ function init(){
 		}
 		fixDef.shape = new b2PolygonShape;
 		fixDef.shape.SetAsArray(vecpoints, vecpoints.length);
+		fixDef.filter.categoryBits=2;
+		fixDef.filter.maskBits=3;	//collide with 1,2
 		bodyDef.position.x = 40;
 		bodyDef.position.y = 5;
 		playerBody = world.CreateBody(bodyDef);
@@ -217,8 +222,8 @@ function update(timeNow) {
 	   
 	   world.Step(
 			 0.001*timeStep   //seconds
-		  ,  10       //velocity iterations
-		  ,  10       //position iterations
+		  ,  8       //velocity iterations
+		  ,  8       //position iterations
 	   );
 	   world.ClearForces();
    }
@@ -351,6 +356,28 @@ function goFullscreen(elem){
 	} else if (elem.msRequestFullscreen) {
 		elem.msRequestFullscreen();
 	}
+}
+
+var bombDef = new b2BodyDef;
+bombDef.type = b2Body.b2_dynamicBody;
+  
+var bombfixDef = new b2FixtureDef;
+       bombfixDef.density = 1.0;
+       bombfixDef.friction = 0.5;
+       bombfixDef.restitution = 0.2;	   
+	   
+	   bombfixDef.filter.categoryBits=4;
+	   bombfixDef.filter.maskBits=1;	//collide with 1 only
+	   
+bombfixDef.shape = new b2CircleShape(
+			0.2 //radius
+		 );	  		 
+   
+function dropBomb(){
+  var playerPosition = playerBody.GetTransform().position;
+  bombDef.position.x = playerPosition.x;
+  bombDef.position.y = playerPosition.y;
+  world.CreateBody(bombDef).CreateFixture(bombfixDef);   
 }
 
 
