@@ -7,10 +7,11 @@ var stats;
 
 var initscount=0;
 var currentTime;
-var timeStep = 1000/30;	//milliseconds. 30fps (mechanics)
+var timeStep = 1000/60;	//milliseconds. 60fps (mechanics)
 var maxUpdatesPerFrame = 5;
 var playerBody;
 var thrustForce=15;
+var willFireGun=false;
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
         , b2BodyDef = Box2D.Dynamics.b2BodyDef
@@ -72,7 +73,7 @@ function start(){
 		goFullscreen(canvas);
 	});
 	keyThing.setKeydownCallback(66,function(){			//66=B
-		dropBomb();
+		willFireGun=true;
 	});
 	
 	currentTime = (new Date()).getTime();
@@ -193,9 +194,11 @@ function update(timeNow) {
    if (updatesRequired>0){
 	   if (updatesRequired>1){
 		   for (var ii=1;ii<updatesRequired;ii++){
+			   processInput();
 			   iterateMechanics();
 		   }
 	   }
+	   processInput();
 	   copyPositions();
 	   iterateMechanics();
    }
@@ -207,7 +210,12 @@ function update(timeNow) {
    stats.end();
    requestAnimationFrame(update);
    
-   function iterateMechanics(){
+   function processInput(){
+	   if (willFireGun){
+		   dropBomb();
+		   willFireGun=false;
+	   }
+	   
 	   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
 	   var turn = keyThing.rightKey() - keyThing.leftKey();
 	   if (turn!=0){
@@ -219,7 +227,9 @@ function update(timeNow) {
 	   if (thrust!=0){
 		   playerBody.ApplyForce(new b2Vec2(thrust*fwd.x,thrust*fwd.y), playerBody.GetWorldCenter());
 	   }
-	   
+   }
+   
+   function iterateMechanics(){
 	   world.Step(
 			 0.001*timeStep   //seconds
 		  ,  8       //velocity iterations
@@ -370,14 +380,21 @@ var bombfixDef = new b2FixtureDef;
 	   bombfixDef.filter.maskBits=1;	//collide with 1 only
 	   
 bombfixDef.shape = new b2CircleShape(
-			0.2 //radius
+			0.1 //radius
 		 );	  		 
    
 function dropBomb(){
+  var fireSpeed=50;	//0 for freefall bomb, +ve for forward firing
+  var fwd = playerBody.GetTransform().R.col2;
+  
   var playerPosition = playerBody.GetTransform().position;
+  var playerVelocity = playerBody.GetLinearVelocity();
   bombDef.position.x = playerPosition.x;
   bombDef.position.y = playerPosition.y;
-  world.CreateBody(bombDef).CreateFixture(bombfixDef);   
+  bombDef.linearVelocity.x=playerVelocity.x + fireSpeed*fwd.x;
+  bombDef.linearVelocity.y=playerVelocity.y + fireSpeed*fwd.y;
+  
+  var bombBody = world.CreateBody(bombDef).CreateFixture(bombfixDef);   
 }
 
 
