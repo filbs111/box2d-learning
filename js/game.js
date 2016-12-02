@@ -97,7 +97,15 @@ function init(){
        //create ground
        bodyDef.type = b2Body.b2_staticBody;
        
-	   var levelBoxes = [[0,debugCanvas.height-10,debugCanvas.width,20]];
+	   var levelBoxes = [[20,debugCanvas.height-10,debugCanvas.width,20],
+	   
+						 [0,0,20,2000],
+						 [2000-20,0,20,2000],
+						 [0,2000,2000,20],
+						 
+						 [100,100,100,100],
+						 [1000,1000,800,100],
+	   ];
 	   var currentBox, halfwidth, halfheight;
 	   for (bb in levelBoxes){
 		   currentBox = levelBoxes[bb];
@@ -113,7 +121,7 @@ function init(){
 	   
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
-       for(var i = 0; i < 8; ++i) {
+       for(var i = 0; i < 100; ++i) {
           if(Math.random() > 0.5) {
              fixDef.shape = new b2PolygonShape;
              fixDef.shape.SetAsBox(
@@ -125,8 +133,8 @@ function init(){
                 Math.random() + 0.1 //radius
              );
           }
-          bodyDef.position.x = Math.random() * 20;
-          bodyDef.position.y = Math.random() * 10;
+          bodyDef.position.x = 10 + Math.random() * 20;
+          bodyDef.position.y = Math.random() * 20;
           world.CreateBody(bodyDef).CreateFixture(fixDef);
        }
 	   
@@ -141,7 +149,7 @@ function init(){
 		}
 		fixDef.shape = new b2PolygonShape;
 		fixDef.shape.SetAsArray(vecpoints, vecpoints.length);
-		bodyDef.position.x = 30;
+		bodyDef.position.x = 40;
 		bodyDef.position.y = 5;
 		playerBody = world.CreateBody(bodyDef);
 		playerBody.CreateFixture(fixDef);
