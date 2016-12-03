@@ -214,6 +214,7 @@ function update(timeNow) {
 	   if (willFireGun){
 		   dropBomb();
 		   willFireGun=false;
+		   createBlast(playerBody.GetTransform().position);
 	   }
 	   
 	   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
@@ -233,7 +234,7 @@ function update(timeNow) {
 	   world.Step(
 			 0.001*timeStep   //seconds
 		  ,  8       //velocity iterations
-		  ,  8       //position iterations
+		  ,  3       //position iterations
 	   );
 	   world.ClearForces();
    }
@@ -397,4 +398,19 @@ function dropBomb(){
   var bombBody = world.CreateBody(bombDef).CreateFixture(bombfixDef);   
 }
 
+function createBlast(position){
+	//if creating multiple blasts at the same time (likely to happen if made basts continuous instead of instantaneous),
+	//iterating over all bodies for each blast probably inefficient
+	var bodyPos, relativePos, distSq, multiplier;
+	for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+		bodyPos = b.GetTransform().position;
+		relativePos = {x:bodyPos.x-position.x,
+							y:bodyPos.y-position.y};
+		distSq = relativePos.x*relativePos.x + relativePos.y*relativePos.y;
+		multiplier = 10/(0.001+distSq);
+		b.ApplyImpulse(new b2Vec2(relativePos.x*multiplier,relativePos.y*multiplier), b.GetWorldCenter());	//upward force
+		//TODO impulse dependent on object size
+	}
+	
+}
 
