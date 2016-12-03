@@ -13,6 +13,7 @@ var playerBody;
 var thrustForce=15;
 var willFireGun=false;
 
+
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
         , b2BodyDef = Box2D.Dynamics.b2BodyDef
         , b2Body = Box2D.Dynamics.b2Body
@@ -214,7 +215,6 @@ function update(timeNow) {
 	   if (willFireGun){
 		   dropBomb();
 		   willFireGun=false;
-		   createBlast(playerBody.GetTransform().position);
 	   }
 	   
 	   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
@@ -231,6 +231,17 @@ function update(timeNow) {
    }
    
    function iterateMechanics(){
+	   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+	      if (b.countdown){
+			 b.countdown--;
+			 if (b.countdown==0){
+				console.log("destroying body");
+				createBlast(b.GetTransform().position);
+			    world.DestroyBody(b);
+			 }
+		  }
+	   }
+	   
 	   world.Step(
 			 0.001*timeStep   //seconds
 		  ,  8       //velocity iterations
@@ -395,7 +406,9 @@ function dropBomb(){
   bombDef.linearVelocity.x=playerVelocity.x + fireSpeed*fwd.x;
   bombDef.linearVelocity.y=playerVelocity.y + fireSpeed*fwd.y;
   
-  var bombBody = world.CreateBody(bombDef).CreateFixture(bombfixDef);   
+  var bombBody = world.CreateBody(bombDef);  
+  bombBody.CreateFixture(bombfixDef);
+  bombBody.countdown=100;
 }
 
 function createBlast(position){
@@ -407,7 +420,7 @@ function createBlast(position){
 		relativePos = {x:bodyPos.x-position.x,
 							y:bodyPos.y-position.y};
 		distSq = relativePos.x*relativePos.x + relativePos.y*relativePos.y;
-		multiplier = 10/(0.001+distSq);
+		multiplier = 10/(0.1+distSq);
 		b.ApplyImpulse(new b2Vec2(relativePos.x*multiplier,relativePos.y*multiplier), b.GetWorldCenter());	//upward force
 		//TODO impulse dependent on object size
 	}
