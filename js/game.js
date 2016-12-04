@@ -49,6 +49,7 @@ function aspectFitCanvas(evt) {
 		canvas.height = ch*pixelRatio;
     }
 	canvas.scale = canvas.width / 1000;	//apply some scale factor to drawing which is 1 for width 1000px
+    drawingScale = 15*canvas.scale;
 }		  
 		  
 function start(){	
@@ -78,8 +79,15 @@ function start(){
 		willFireGun=true;
 	});
 	
-	currentTime = (new Date()).getTime();
-	requestAnimationFrame(update);
+	assetManager.setOnloadFunc(function(){
+		currentTime = (new Date()).getTime();
+		requestAnimationFrame(update);
+	});
+	assetManager.setAssetsToPreload({
+		EXPL: settings.EXPLOSION_IMAGE_SRC
+	});
+	
+	
 }
 
 function init(){
@@ -249,6 +257,11 @@ function update(timeNow) {
    }
    
    function iterateMechanics(){
+	   
+	   for (var e in explosions){
+		  explosions[e].iterate();
+	   }
+	   
 	   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
 	      if (b.countdown){
 			 b.countdown--;
@@ -295,13 +308,17 @@ function calcInterpPositions(remainderFraction){
 	}
 }
 
+var drawingScale;
+
 function draw_world(world, context) {
-  var scale=15*canvas.scale;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
-  context.clearRect(0, 0, canvas.width, canvas.height);
   
-  ctx.setTransform(1, 0, 0, 1, canvas.width/2-scale*playerBody.interpPos.x, 
-								canvas.height/2-scale*playerBody.interpPos.y);  //centred player
+  ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
+  //context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle= "#AAFFFFFF";
+  context.fillRect(0, 0, canvas.width, canvas.height);	//so "lighter" globalCompositeOperation has something to start from
+  
+  ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*playerBody.interpPos.x, 
+								canvas.height/2-drawingScale*playerBody.interpPos.y);  //centred player
   context.fillStyle="#AAAAAA";
   context.strokeStyle="#000000";
   
@@ -324,6 +341,12 @@ function draw_world(world, context) {
  
   }
   
+  ctx.globalCompositeOperation = "lighter";
+  for (var e in explosions){
+	explosions[e].draw();
+  }
+  ctx.globalCompositeOperation = "source-over"; //set back to default
+  
   function drawShape(body, shape, context) {
   context.beginPath();
 
@@ -340,25 +363,25 @@ function draw_world(world, context) {
       var dtheta = 2.0 * Math.PI / segments;
 
       // draw circle
-      context.moveTo((pos.x + r) * scale, pos.y * scale);
+      context.moveTo((pos.x + r) * drawingScale, pos.y * drawingScale);
 
       for (var i = 0; i < segments; i++) {
         var d = new b2Vec2(r * Math.cos(theta), r * Math.sin(theta));
 
         var v = pos.Copy();
         v.Add(d);
-        context.lineTo(v.x * scale, v.y * scale);
+        context.lineTo(v.x * drawingScale, v.y * drawingScale);
         theta += dtheta;
       }
 
-      context.lineTo((pos.x + r) * scale, pos.y * scale);
+      context.lineTo((pos.x + r) * drawingScale, pos.y * drawingScale);
 
       // draw radius line
-      context.moveTo(pos.x * scale, pos.y * scale);
+      context.moveTo(pos.x * drawingScale, pos.y * drawingScale);
       var ax = body.GetTransform().R.col1;
 
       var pos2 = new b2Vec2(pos.x + r * ax.x, pos.y + r * ax.y);
-      context.lineTo(pos2.x * scale, pos2.y * scale);
+      context.lineTo(pos2.x * drawingScale, pos2.y * drawingScale);
     }
     break;
 
@@ -374,16 +397,16 @@ function draw_world(world, context) {
       a.MulM(body.GetTransform().R);
       tV.Add(a);
 
-      context.moveTo(tV.x * scale, tV.y * scale);
+      context.moveTo(tV.x * drawingScale, tV.y * drawingScale);
 
       for (var i = 0; i < vert.length; i++) {
         var v = vert[i].Copy();
         v.MulM(body.GetTransform().R);
         v.Add(position);
-        context.lineTo(v.x * scale, v.y * scale);
+        context.lineTo(v.x * drawingScale, v.y * drawingScale);
       }
 
-      context.lineTo(tV.x * scale, tV.y * scale);
+      context.lineTo(tV.x * drawingScale, tV.y * drawingScale);
     }
 
     break;
@@ -440,7 +463,9 @@ function dropBomb(){
 }
 
 function detonateBody(b){
-	createBlast(b.GetTransform().position);
+	var bodyPos = b.GetTransform().position;
+	new Explosion(~~bodyPos.x, ~~bodyPos.y , 0,0, 4,1 );
+	createBlast(bodyPos);
 	destroy_list.push(b);
 }
 
