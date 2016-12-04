@@ -17,7 +17,10 @@ var willFireGun=false;
 
 var destroy_list = [];
 
+var floatingPlatform;
+
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
+		, b2Mat22 = Box2D.Common.Math.b2Mat22
         , b2BodyDef = Box2D.Dynamics.b2BodyDef
         , b2Body = Box2D.Dynamics.b2Body
         , b2FixtureDef = Box2D.Dynamics.b2FixtureDef
@@ -81,6 +84,9 @@ function start(){
 	keyThing.setKeydownCallback(66,function(){			//66=B
 		willFireGun=true;
 	});
+	keyThing.setKeydownCallback(80,function(){			//80=P
+
+	});
 	
 	assetManager.setOnloadFunc(function(){
 		currentTime = (new Date()).getTime();
@@ -139,9 +145,9 @@ function init(){
 						 [0,2000,2000,20, b2Body.b2_staticBody],
 						 
 						 [100,100,100,100, b2Body.b2_staticBody],
-						 [1000,1000,800,100, b2Body.b2_dynamicBody],
+						 [1000,1000,800,100, b2Body.b2_dynamicBody, 1],
 	   ];
-	   var currentBox, halfwidth, halfheight, bodyType;
+	   var currentBox, halfwidth, halfheight, bodyType, thisBody;
 	   for (bb in levelBoxes){
 		   currentBox = levelBoxes[bb];
 		   halfwidth = currentBox[2]/2;
@@ -153,12 +159,15 @@ function init(){
            bodyDef.position.y = (currentBox[1]+halfheight) / SCALE;
        
 	       fixDef.shape.SetAsBox(halfwidth / SCALE, halfheight / SCALE);
-           world.CreateBody(bodyDef).CreateFixture(fixDef);
+           thisBody = world.CreateBody(bodyDef);
+		   thisBody.CreateFixture(fixDef);
+		   
+		   if (currentBox[5]){floatingPlatform = thisBody;}
 	   }
 	   
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
-       for(var i = 0; i < 250; ++i) {
+       for(var i = 0; i < 50; ++i) {
           if(Math.random() > 0.5) {
              fixDef.shape = new b2PolygonShape;
              fixDef.shape.SetAsBox(
@@ -202,19 +211,11 @@ function init(){
 			var fixb = contact.GetFixtureB();
 			destroyIfBomb(fixa.m_body,fixb.m_body);
 			destroyIfBomb(fixb.m_body,fixa.m_body);
-	
-			highlightIfPlayer(fixa.m_body,fixb.m_body);
-			highlightIfPlayer(fixb.m_body,fixa.m_body);
 			
 			function destroyIfBomb(body1,body2){
 				if (body1.countdown){
 					detonateBody(body1);
 					body2.color = '#f88';
-				}
-			}
-			function highlightIfPlayer(body1,body2){
-				if (body1==playerBody){
-					body2.color = '#ff8';
 				}
 			}
 		}
@@ -247,7 +248,7 @@ function init(){
 	   
 	   copyPositions();
 }; // init()
-  
+
 function update(timeNow) {
    
    //var timeNow = (new Date()).getTime();
@@ -301,6 +302,8 @@ function update(timeNow) {
 	   if (thrust!=0){
 		   playerBody.ApplyForce(new b2Vec2(thrust*fwd.x,thrust*fwd.y), playerBody.GetWorldCenter());
 	   }
+	   
+	   floatingPlatform.ApplyTorque(5000*keyThing.downKey());
    }
    
    function iterateMechanics(){
@@ -368,6 +371,17 @@ function draw_world(world, context) {
 								canvas.height/2-drawingScale*playerBody.interpPos.y);  //centred player
   context.fillStyle="#AAAAAA";
   context.strokeStyle="#000000";
+  
+  //highlight/dehighlight bodies touched by player
+  for (var c = playerBody.GetContactList(); c; c = c.next) {
+	    var otherBody =c.other;
+		if (c.contact.IsTouching()){
+			otherBody.color = '#fa4';
+			if(checkForFixedRelativePose(playerBody,otherBody)){
+				otherBody.color = '#ff8';
+			}
+		}
+   }
   
   //Draw the bodies
   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
@@ -540,3 +554,28 @@ function createBlast(position){
 	
 }
 
+var myMat;
+function checkForFixedRelativePose(body1, body2){
+	//get linear and angular velocity of one body in frame of another.
+	var rotationalVelocityThreshold = body1.GetAngularVelocity() - body2.GetAngularVelocity();
+	if (Math.abs(rotationalVelocityThreshold) > 0.1){return false;}
+	
+	var body1Transform = body1.GetTransform;
+	var body2Transform = body2.GetTransform;
+	var relativeVel = new b2Vec2;
+	relativeVel.Add(body1.GetLinearVelocity());
+	relativeVel.Subtract(body2.GetLinearVelocity());
+	
+	var relativePos = new b2Vec2;
+	relativePos.Add(body1.GetTransform().position);
+	relativePos.Subtract(body2.GetTransform().position);
+	
+	var angVel = body2.GetAngularVelocity();
+	myMat = b2Mat22.FromVV(new b2Vec2(0,-angVel), new b2Vec2(angVel,0) );
+	relativePos.MulM(myMat);
+	relativeVel.Add(relativePos);
+	
+	if (relativeVel.Length()>0.1){return false;} 
+	
+	return true;
+}
