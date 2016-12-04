@@ -13,6 +13,7 @@ var playerBody;
 var thrustForce=15;
 var willFireGun=false;
 
+var destroy_list = [];
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
         , b2BodyDef = Box2D.Dynamics.b2BodyDef
@@ -163,6 +164,23 @@ function init(){
 		playerBody.SetAngularDamping(10);
 		playerBody.SetAngle(Math.PI);
 		
+		var collisionListener = new Box2D.Dynamics.b2ContactListener();
+		collisionListener.BeginContact = function(contact){
+			//console.log("a collision occured. contact: " + contact + ", impulse: " + impulse);
+			var fixa = contact.GetFixtureA();
+			var fixb = contact.GetFixtureB();
+			destroyIfBomb(fixa.m_body,fixb.m_body);
+			destroyIfBomb(fixb.m_body,fixa.m_body);
+
+			function destroyIfBomb(body1,body2){
+				if (body1.countdown){
+					detonateBody(body1);
+					body2.color = '#f00';
+				}
+			}
+		}
+		world.SetContactListener(collisionListener);
+
        //setup debug draw
        var debugDraw = new b2DebugDraw();
        debugDraw.SetSprite(debugCtx);
@@ -236,11 +254,17 @@ function update(timeNow) {
 			 b.countdown--;
 			 if (b.countdown==0){
 				console.log("destroying body");
-				createBlast(b.GetTransform().position);
-			    world.DestroyBody(b);
+				detonateBody(b);
 			 }
 		  }
 	   }
+	   
+	   // Destroy all bodies in destroy_list
+	  for (var i in destroy_list) {
+		world.DestroyBody(destroy_list[i]);
+	  }
+	  // Reset the array
+	  destroy_list.length = 0;
 	   
 	   world.Step(
 			 0.001*timeStep   //seconds
@@ -283,6 +307,10 @@ function draw_world(world, context) {
   
   //Draw the bodies
   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+	  
+	context.fillStyle= b.color || "#AAAAAA";
+
+	  
     //A body has many fixtures
     for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
       var shape = f.GetShape();
@@ -411,6 +439,11 @@ function dropBomb(){
   bombBody.countdown=100;
 }
 
+function detonateBody(b){
+	createBlast(b.GetTransform().position);
+	destroy_list.push(b);
+}
+
 function createBlast(position){
 	//if creating multiple blasts at the same time (likely to happen if made basts continuous instead of instantaneous),
 	//iterating over all bodies for each blast probably inefficient
@@ -420,7 +453,7 @@ function createBlast(position){
 		relativePos = {x:bodyPos.x-position.x,
 							y:bodyPos.y-position.y};
 		distSq = relativePos.x*relativePos.x + relativePos.y*relativePos.y;
-		multiplier = 10/(0.1+distSq);
+		multiplier = 10/(0.5+distSq);
 		b.ApplyImpulse(new b2Vec2(relativePos.x*multiplier,relativePos.y*multiplier), b.GetWorldCenter());	//upward force
 		//TODO impulse dependent on object size
 	}
