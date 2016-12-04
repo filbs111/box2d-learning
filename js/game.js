@@ -3,6 +3,8 @@ var debugCtx;
 var canvas;
 var ctx;
 var world;
+var bC;
+var waterLevel = -35;
 var stats;
 
 var initscount=0;
@@ -26,6 +28,7 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
         , b2CircleShape = Box2D.Collision.Shapes.b2CircleShape
 		, b2Shape = Box2D.Collision.Shapes.b2Shape
         , b2DebugDraw = Box2D.Dynamics.b2DebugDraw
+	    , b2BuoyancyController = Box2D.Dynamics.Controllers.b2BuoyancyController
           ;
 
 window.onresize = aspectFitCanvas;		
@@ -34,7 +37,7 @@ function aspectFitCanvas(evt) {
     var ww = window.innerWidth;
     var wh = window.innerHeight;
 	var desiredAspect=2;
-	var pixelRatio=0.5;		//set to 0.5 to double size of canvas pixels on screen etc
+	var pixelRatio=1;		//set to 0.5 to double size of canvas pixels on screen etc
 	if ( ww * canvas.height > wh * canvas.width ) {
 		var cw = wh * desiredAspect;
         canvas.style.height = "" + wh + "px";
@@ -101,6 +104,26 @@ function init(){
        
        var SCALE = 30;
      
+	 //
+	// Create a buoyancy controller
+	//
+	bC = new b2BuoyancyController();
+	world.AddController(bC);
+	
+	// set the surface normal
+	bC.normal.Set(0,-1);
+	
+	// set the offset from the top of the canvas
+	//bC.offset = -1 * ( canvas_height_m / 2 );
+	bC.offset = waterLevel;
+	
+	// set the water density
+	bC.density = 2;
+	
+	// set linear drag
+	bC.linearDrag = 5;
+	 
+	 
        var fixDef = new b2FixtureDef;
        fixDef.density = 1.0;
        fixDef.friction = 0.5;
@@ -135,12 +158,12 @@ function init(){
 	   
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
-       for(var i = 0; i < 500; ++i) {
+       for(var i = 0; i < 250; ++i) {
           if(Math.random() > 0.5) {
              fixDef.shape = new b2PolygonShape;
              fixDef.shape.SetAsBox(
-                   Math.random()/3 + 0.1 //half width
-                ,  Math.random()/3 + 0.1 //half height
+                   Math.random()/2 + 0.1 //half width
+                ,  Math.random()/2 + 0.1 //half height
              );
           } else {
              fixDef.shape = new b2CircleShape(
@@ -189,6 +212,11 @@ function init(){
 		}
 		world.SetContactListener(collisionListener);
 
+		//add all bodies to buoyancy controller
+		for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+			bC.AddBody(b);
+		}
+		
        //setup debug draw
        var debugDraw = new b2DebugDraw();
        debugDraw.SetSprite(debugCtx);
@@ -346,6 +374,13 @@ function draw_world(world, context) {
 	explosions[e].draw();
   }
   ctx.globalCompositeOperation = "source-over"; //set back to default
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
+  //var startWater = canvas.height/2; //Math.max(0,)
+  var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+playerBody.interpPos.y));
+  var endWater = canvas.height;
+  context.fillStyle="#00BB6666";
+  context.fillRect(0, startWater, canvas.width, endWater-startWater);	
   
   function drawShape(body, shape, context) {
   context.beginPath();
@@ -459,6 +494,7 @@ function dropBomb(){
   
   var bombBody = world.CreateBody(bombDef);  
   bombBody.CreateFixture(bombfixDef);
+  bC.AddBody(bombBody);
   bombBody.countdown=100;
 }
 
