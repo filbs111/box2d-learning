@@ -131,23 +131,23 @@ function init(){
      
 	   fixDef.shape = new b2PolygonShape;
 	   var bodyDef = new b2BodyDef;
-       //create ground
-       bodyDef.type = b2Body.b2_staticBody;
        
-	   var levelBoxes = [[20,debugCanvas.height-10,debugCanvas.width,20],
+	   var levelBoxes = [[20,debugCanvas.height-10,debugCanvas.width,20, b2Body.b2_staticBody],
 	   
-						 [0,0,20,2000],
-						 [2000-20,0,20,2000],
-						 [0,2000,2000,20],
+						 [0,0,20,2000, b2Body.b2_staticBody],
+						 [2000-20,0,20,2000, b2Body.b2_staticBody],
+						 [0,2000,2000,20, b2Body.b2_staticBody],
 						 
-						 [100,100,100,100],
-						 [1000,1000,800,100],
+						 [100,100,100,100, b2Body.b2_staticBody],
+						 [1000,1000,800,100, b2Body.b2_dynamicBody],
 	   ];
-	   var currentBox, halfwidth, halfheight;
+	   var currentBox, halfwidth, halfheight, bodyType;
 	   for (bb in levelBoxes){
 		   currentBox = levelBoxes[bb];
 		   halfwidth = currentBox[2]/2;
 		   halfheight = currentBox[3]/2;
+   		   bodyType= currentBox[4];
+		   bodyDef.type = bodyType;
 		   // positions the center of the object (not upper left!)
 	       bodyDef.position.x = (currentBox[0]+halfwidth) / SCALE;
            bodyDef.position.y = (currentBox[1]+halfheight) / SCALE;
@@ -202,11 +202,30 @@ function init(){
 			var fixb = contact.GetFixtureB();
 			destroyIfBomb(fixa.m_body,fixb.m_body);
 			destroyIfBomb(fixb.m_body,fixa.m_body);
-
+	
+			highlightIfPlayer(fixa.m_body,fixb.m_body);
+			highlightIfPlayer(fixb.m_body,fixa.m_body);
+			
 			function destroyIfBomb(body1,body2){
 				if (body1.countdown){
 					detonateBody(body1);
-					body2.color = '#f00';
+					body2.color = '#f88';
+				}
+			}
+			function highlightIfPlayer(body1,body2){
+				if (body1==playerBody){
+					body2.color = '#ff8';
+				}
+			}
+		}
+		collisionListener.EndContact = function(contact){
+			var fixa = contact.GetFixtureA();
+			var fixb = contact.GetFixtureB();
+			deHighlightIfPlayer(fixa.m_body,fixb.m_body);
+			deHighlightIfPlayer(fixb.m_body,fixa.m_body);
+			function deHighlightIfPlayer(body1,body2){
+				if (body1==playerBody){
+					body2.color = null;
 				}
 			}
 		}
