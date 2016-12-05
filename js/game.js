@@ -26,6 +26,7 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
         , b2FixtureDef = Box2D.Dynamics.b2FixtureDef
         , b2Fixture = Box2D.Dynamics.b2Fixture
         , b2World = Box2D.Dynamics.b2World
+		, b2WorldManifold = Box2D.Collision.b2WorldManifold
         , b2MassData = Box2D.Collision.Shapes.b2MassData
         , b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape
         , b2CircleShape = Box2D.Collision.Shapes.b2CircleShape
@@ -171,12 +172,12 @@ function init(){
           if(Math.random() > 0.5) {
              fixDef.shape = new b2PolygonShape;
              fixDef.shape.SetAsBox(
-                   Math.random()/2 + 0.1 //half width
-                ,  Math.random()/2 + 0.1 //half height
+                   Math.random() + 0.1 //half width
+                ,  Math.random() + 0.1 //half height
              );
           } else {
              fixDef.shape = new b2CircleShape(
-                Math.random()/2 + 0.1 //radius
+                Math.random() + 0.1 //radius
              );
           }
           bodyDef.position.x = 10 + Math.random() * 20;
@@ -373,15 +374,20 @@ function draw_world(world, context) {
   context.strokeStyle="#000000";
   
   //highlight/dehighlight bodies touched by player
+  var playerContactCount =0;
   for (var c = playerBody.GetContactList(); c; c = c.next) {
 	    var otherBody =c.other;
 		if (c.contact.IsTouching()){
+			playerContactCount++
 			otherBody.color = '#fa4';
-			if(checkForFixedRelativePose(playerBody,otherBody)){
-				otherBody.color = '#ff8';
+			if (checkContactUnderPlayer(c)){
+				if (checkForFixedRelativePose(playerBody,otherBody)){
+					otherBody.color = '#ff8';
+				}
 			}
 		}
    }
+   //console.log("num player contacts : " + playerContactCount);
   
   //Draw the bodies
   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
@@ -554,7 +560,6 @@ function createBlast(position){
 	
 }
 
-var myMat;
 function checkForFixedRelativePose(body1, body2){
 	//get linear and angular velocity of one body in frame of another.
 	var rotationalVelocityThreshold = body1.GetAngularVelocity() - body2.GetAngularVelocity();
@@ -571,11 +576,21 @@ function checkForFixedRelativePose(body1, body2){
 	relativePos.Subtract(body2.GetTransform().position);
 	
 	var angVel = body2.GetAngularVelocity();
-	myMat = b2Mat22.FromVV(new b2Vec2(0,-angVel), new b2Vec2(angVel,0) );
+	var myMat = b2Mat22.FromVV(new b2Vec2(0,-angVel), new b2Vec2(angVel,0) );
 	relativePos.MulM(myMat);
 	relativeVel.Add(relativePos);
 	
 	if (relativeVel.Length()>0.1){return false;} 
 	
+	return true;
+}
+
+function checkContactUnderPlayer(c){
+	//check that the contact is on the base of the player
+	var myWorldManifold = new b2WorldManifold()
+	c.contact.GetWorldManifold(myWorldManifold);
+	var contactNormal = myWorldManifold.m_normal;
+	contactNormal.MulTM(playerBody.GetTransform().R);
+	if (contactNormal.y>-0.99){return false;}
 	return true;
 }
