@@ -295,7 +295,7 @@ function update(timeNow) {
 	   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
 	   var turn = keyThing.rightKey() - keyThing.leftKey();
 	   if (turn!=0){
-		   playerBody.ApplyTorque(4*turn);
+		   playerBody.ApplyTorque(6*turn);
 	   }
 	   var thrust = thrustForce*keyThing.upKey();
 	   //console.log(thrust);
@@ -362,10 +362,9 @@ function calcInterpPositions(remainderFraction){
 var drawingScale;
 
 function draw_world(world, context) {
-  
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   //context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle= "#AAFFFFFF";
+  context.fillStyle= "#AAFFFF";
   context.fillRect(0, 0, canvas.width, canvas.height);	//so "lighter" globalCompositeOperation has something to start from
   
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*playerBody.interpPos.x, 
@@ -418,7 +417,8 @@ function draw_world(world, context) {
   //var startWater = canvas.height/2; //Math.max(0,)
   var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+playerBody.interpPos.y));
   var endWater = canvas.height;
-  context.fillStyle="#00BB6666";
+  context.fillStyle="rgba(0, 150, 75, 0.5)";
+
   context.fillRect(0, startWater, canvas.width, endWater-startWater);	
   
   function drawShape(body, shape, context) {
