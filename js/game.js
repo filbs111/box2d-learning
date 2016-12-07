@@ -166,6 +166,43 @@ function init(){
 		   if (currentBox[5]){floatingPlatform = thisBody;}
 	   }
 	   
+   	   //add an ellipse, to check the limit on vertices in a polygon shape. seems no real limit here - got up to 2048 ok!
+		var num_ellipse_points = 64;
+		var ellipse_points = [];
+		for (var i = 0; i < num_ellipse_points; i++) {
+			var vec = new b2Vec2();
+			var ang = 2*Math.PI*i/num_ellipse_points;
+			vec.Set(15*Math.cos(ang), 2*Math.sin(ang));
+			ellipse_points[i] = vec;
+		}
+	    bodyDef.type = b2Body.b2_staticBody;
+		//bodyDef.type = b2Body.b2_dynamicBody;
+		fixDef.shape.SetAsArray(ellipse_points, ellipse_points.length);
+		bodyDef.position.x = 50;
+		bodyDef.position.y = 10;
+		world.CreateBody(bodyDef).CreateFixture(fixDef);
+		
+		//add an edge shape (doesn't work for dynamic bodies AFAIK, should work for static.)
+		//apparently later versions of box2d have support for a "chain" edge too
+		fixDef.shape = new b2PolygonShape();
+		bodyDef.position.x = 0;
+		bodyDef.position.y = 0;
+		fixDef.shape.SetAsEdge(new b2Vec2(0, 0), new b2Vec2(20, 0));
+		world.CreateBody(bodyDef).CreateFixture(fixDef);
+		
+		//can make a custom method to make a series of these into an extended curve. check whether this snags
+		var currentPos = new b2Vec2(0,0);
+		var lastPos;
+		var waveBody = world.CreateBody(bodyDef);
+		for (var ii=1;ii<50;ii++){
+			lastPos = currentPos;
+			currentPos = new b2Vec2(ii,10*Math.sin(ii/10));
+			fixDef.shape.SetAsEdge(currentPos, lastPos);
+			waveBody.CreateFixture(fixDef);
+		}
+		
+		
+	   
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
        for(var i = 0; i < 50; ++i) {
@@ -184,6 +221,7 @@ function init(){
           bodyDef.position.y = Math.random() * 20;
           world.CreateBody(bodyDef).CreateFixture(fixDef);
        }
+	   
 	   
 	   //add a player triangle object
 		var points = [ [-0.5,-0.35], [0.5, -0.35], [0, 0.7]];
