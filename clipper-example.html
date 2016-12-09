@@ -35,13 +35,13 @@ document.getElementById("svgcontainer").innerHTML = svg;
 // Converts Paths to SVG path string
 // and scales down the coordinates
 function paths2string (paths, scale) {
-  var svgpath = "", i, j;
+  var svgpath = "", i, j, thisPath;
   if (!scale) scale = 1;
   for(i = 0; i < paths.length; i++) {
-    for(j = 0; j < paths[i].length; j++){
-      if (!j) svgpath += "M";
-      else svgpath += "L";
-      svgpath += (paths[i][j].X / scale) + ", " + (paths[i][j].Y / scale);
+	thisPath = paths[i];
+    for(j = 0; j < thisPath.length; j++){
+      svgpath += j ? "L": "M";
+      svgpath += (thisPath[j].X / scale) + ", " + (thisPath[j].Y / scale);
     }
     svgpath += "Z";
   }
