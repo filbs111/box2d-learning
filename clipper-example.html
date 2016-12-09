@@ -27,21 +27,21 @@ var succeeded = cpr.Execute(ClipperLib.ClipType.ctUnion, solution_paths, Clipper
 // console.log(JSON.stringify(solution_paths));
 
 // Scale down coordinates and draw ...
-var svg = '<svg style="background-color:#dddddd" width="160" height="160">';
-svg += '<path stroke="black" fill="yellow" stroke-width="2" d="' + paths2string(solution_paths, scale) + '"/>';
+var svgsize = 160*scale;
+var svg = '<svg style="background-color:#dddddd" width="160" height="160" viewBox="0 0 '+svgsize+' '+svgsize+'">';
+svg += '<path stroke="black" fill="yellow" stroke-width="'+2*scale+'" d="' + paths2string(solution_paths) + '"/>';
 svg += '</svg>';
 document.getElementById("svgcontainer").innerHTML = svg;
 
 // Converts Paths to SVG path string
 // and scales down the coordinates
-function paths2string (paths, scale) {
+function paths2string (paths) {
   var svgpath = "", i, j, thisPath;
-  if (!scale) scale = 1;
   for(i = 0; i < paths.length; i++) {
 	thisPath = paths[i];
     for(j = 0; j < thisPath.length; j++){
       svgpath += j ? "L": "M";
-      svgpath += (thisPath[j].X / scale) + ", " + (thisPath[j].Y / scale);
+      svgpath += thisPath[j].X  + "," + thisPath[j].Y;
     }
     svgpath += "Z";
   }
