@@ -3,55 +3,90 @@
   <head>
     <title>Starter Boolean</title>
     <script src="lib/clipper.js"></script>
-  </head>
-  <body>
-    <div id="svgcontainer"></div>
-    <script>
-var subj_paths = [[{X:10,Y:10},{X:110,Y:10},{X:110,Y:110},{X:10,Y:110}],
-                  [{X:20,Y:20},{X:20,Y:100},{X:100,Y:100},{X:100,Y:20}]]; 
-var clip_paths = [[{X:50,Y:50},{X:150,Y:50},{X:150,Y:150},{X:50,Y:150}],
-                  [{X:60,Y:60},{X:60,Y:140},{X:140,Y:140},{X:140,Y:60}]];
+	
+	<script>
+	
+var svgContainer;
 
-var cpr = new ClipperLib.Clipper();
-
+var cpr;
 var scale = 100;
-ClipperLib.JS.ScaleUpPaths(subj_paths, scale);
-ClipperLib.JS.ScaleUpPaths(clip_paths, scale);
+var solution_paths; 
 
-cpr.AddPaths(subj_paths, ClipperLib.PolyType.ptSubject, true);  // true means closed path
-cpr.AddPaths(clip_paths, ClipperLib.PolyType.ptClip, true);
+function init(){
+	svgContainer = document.getElementById("svgcontainer");
+	svgContainer.addEventListener("click",function(evt){
+		cutMousePos(evt);
+	});
+	
+	var subj_paths = [[{X:10,Y:10},{X:110,Y:10},{X:110,Y:110},{X:10,Y:110}],
+                  [{X:20,Y:20},{X:20,Y:100},{X:100,Y:100},{X:100,Y:20}]]; 
+	var clip_paths = [[{X:50,Y:50},{X:150,Y:50},{X:150,Y:150},{X:50,Y:150}],
+                  [{X:60,Y:60},{X:60,Y:140},{X:140,Y:140},{X:140,Y:60}]];
+	
+	cpr = new ClipperLib.Clipper();
+	
+	ClipperLib.JS.ScaleUpPaths(subj_paths, scale);
+	ClipperLib.JS.ScaleUpPaths(clip_paths, scale);
 
-var solution_paths = new ClipperLib.Paths();
-var succeeded = cpr.Execute(ClipperLib.ClipType.ctUnion, solution_paths, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+	cpr.AddPaths(subj_paths, ClipperLib.PolyType.ptSubject, true);  // true means closed path
+	cpr.AddPaths(clip_paths, ClipperLib.PolyType.ptClip, true);
 
-// console.log(JSON.stringify(solution_paths));
+	solution_paths = new ClipperLib.Paths();
 
-// Scale down coordinates and draw ...
-var svgsize = 160*scale;
-var svg = '<svg style="background-color:#dddddd" width="160" height="160" viewBox="0 0 '+svgsize+' '+svgsize+'">';
-svg += '<path stroke="black" fill="yellow" stroke-width="'+2*scale+'" d="' + paths2string(solution_paths) + '"/>';
-svg += '</svg>';
-document.getElementById("svgcontainer").innerHTML = svg;
-
-// Converts Paths to SVG path string
-// and scales down the coordinates
-function paths2string (paths) {
-  var svgpath = "", i, j, thisPath;
-  for(i = 0; i < paths.length; i++) {
-	thisPath = paths[i];
-    for(j = 0; j < thisPath.length; j++){
-      svgpath += j ? "L": "M";
-      svgpath += thisPath[j].X  + "," + thisPath[j].Y;
-    }
-    svgpath += "Z";
-  }
-  if (svgpath=="") svgpath = "M0,0";
-  return svgpath;
+	var succeeded = cpr.Execute(ClipperLib.ClipType.ctUnion, solution_paths, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+	updateSvgFromPath();
 }
-var paths = [[{"X":10,"Y":10},{"X":110,"Y":10},{"X":110,"Y":110},{"X":10,"Y":110}]];
-console.log(JSON.stringify(paths));
-ClipperLib.Clipper.ReversePaths(paths);
-console.log(JSON.stringify(paths));
+
+function cutMousePos(evt){
+	var mX = evt.offsetX;
+	var mY = evt.offsetY;
+	
+	console.log("cutting at mouse pos " + mX +", " + mY);
+	
+	var cutSize=10;
+	var newPaths = [[{X:mX-cutSize,Y:mY-cutSize},{X:mX+cutSize,Y:mY-cutSize},
+	{X:mX+cutSize,Y:mY+cutSize},{X:mX-cutSize,Y:mY+cutSize}]]; 	//TODO can this be a single path? (instead of an array of 1)
+	ClipperLib.JS.ScaleUpPaths(newPaths, scale);
+	
+	cpr = new ClipperLib.Clipper();	//fresh clipper?? TODO find some method to clean it!
+	
+	cpr.AddPaths(solution_paths, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
+	cpr.AddPaths(newPaths, ClipperLib.PolyType.ptClip, true);
+
+	var succeeded = cpr.Execute(ClipperLib.ClipType.ctUnion, solution_paths, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+	updateSvgFromPath();			  
+}
+
+function updateSvgFromPath(){
+	// Scale down coordinates and draw ...
+	var svgsize = 160*scale;
+	var svg = '<svg style="background-color:#dddddd" width="160" height="160" viewBox="0 0 '+svgsize+' '+svgsize+'">';
+	svg += '<path stroke="black" fill="yellow" stroke-width="'+2*scale+'" d="' + paths2string(solution_paths) + '"/>';
+	svg += '</svg>';
+	svgContainer.innerHTML = svg;
+
+	// Converts Paths to SVG path string
+	// and scales down the coordinates
+	function paths2string (paths) {
+	  var svgpath = "", i, j, thisPath;
+	  for(i = 0; i < paths.length; i++) {
+		thisPath = paths[i];
+		for(j = 0; j < thisPath.length; j++){
+		  svgpath += j ? "L": "M";
+		  svgpath += thisPath[j].X  + "," + thisPath[j].Y;
+		}
+		svgpath += "Z";
+	  }
+	  if (svgpath=="") svgpath = "M0,0";
+	  return svgpath;
+	}
+}
+
     </script>
+	
+  </head>
+  <body onload="init()">
+    <div id="svgcontainer"></div>
+    
   </body>
 </html>
