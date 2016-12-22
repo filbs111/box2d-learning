@@ -678,6 +678,14 @@ function checkContactUnderPlayer(c){
 }
 
 function updateLandscapeFixtures(){
+	//delete existing fixtures. 
+	//this will mean deleting and recreating many fixtures. TODO avoid this
+	var nextf;
+	for (var f = landscapeBody.GetFixtureList(); f != null; f=nextf) {
+		nextf = f.GetNext();
+		landscapeBody.DestroyFixture(f);
+	}
+	
 	var SCALE = 5;
 
 	var fixDef = new b2FixtureDef;
@@ -707,4 +715,20 @@ function updateLandscapeFixtures(){
 			currentPos = nextPos;
 		}
 	}
+}
+
+var cpr;
+function editLandscapeFixture(){
+	//temporary test - make a fixed edit to landscape
+	cpr = new ClipperLib.Clipper();
+	
+	cpr.AddPaths(landscapeBody.clippablePath, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
+
+	var cutPath = [[{X:50,Y:50},{X:50,Y:100},{X:100,Y:100},{X:100,Y:50}]];
+	cpr.AddPaths(cutPath, ClipperLib.PolyType.ptClip, true);
+
+	var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, landscapeBody.clippablePath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+
+	updateLandscapeFixtures();
+	
 }
