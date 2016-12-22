@@ -735,9 +735,14 @@ function editLandscapeFixture(x,y,r){
 	
 	cpr.AddPaths(landscapeBody.clippablePath, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
 
-	var cutPath = [[{X:x-r,Y:y-r},{X:x-r,Y:y+r},{X:x+r,Y:y+r},{X:x+r,Y:y-r}]];
+	//var cutPath = [{X:x-r,Y:y-r},{X:x-r,Y:y+r},{X:x+r,Y:y+r},{X:x+r,Y:y-r}]; //square
+	var cutPath=[];	//circle. todo precalculate
+	for(var aa=0;aa<10;aa++){
+		var ang = aa*Math.PI/5;
+		cutPath.push({X:x+r*Math.cos(ang), Y:y+r*Math.sin(ang)});
+	}
 	
-	cpr.AddPaths(cutPath, ClipperLib.PolyType.ptClip, true);
+	cpr.AddPath(cutPath, ClipperLib.PolyType.ptClip, true);
 
 	var succeeded = cpr.Execute(ClipperLib.ClipType.ctUnion, landscapeBody.clippablePath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
 
