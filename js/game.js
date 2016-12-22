@@ -19,6 +19,7 @@ var destroy_list = [];
 
 var floatingPlatform;
 var landscapeBody;
+var landscapeUpdateScheduled=false;
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
@@ -179,6 +180,9 @@ function init(){
 	   //make some path object suitable for use with jsclipper. attach it to the landscapeBody object
 	   landscapeBody.clippablePath = [[{X:50,Y:50},{X:150,Y:50},{X:150,Y:150},{X:50,Y:150}],
                   [{X:60,Y:60},{X:60,Y:140},{X:140,Y:140},{X:140,Y:60}]];
+	   ClipperLib.JS.ScaleUpPaths(landscapeBody.clippablePath, 5);
+
+
 	   updateLandscapeFixtures();		  
 		
 	   
@@ -378,6 +382,11 @@ function update(timeNow) {
 		  }
 	   }
 	   
+	   if (landscapeUpdateScheduled){
+		  landscapeUpdateScheduled=false;
+		  updateLandscapeFixtures();
+	   }
+	   
 	   // Destroy all bodies in destroy_list
 	  for (var i in destroy_list) {
 		world.DestroyBody(destroy_list[i]);
@@ -463,9 +472,9 @@ function draw_world(world, context) {
 			for (var ii=0;ii<numLoops;ii++){
 				thisLoop = cPath[ii];
 				numPoints = thisLoop.length;
-				context.moveTo( thisLoop[0].X * drawingScale/5, thisLoop[0].Y * drawingScale/5);
+				context.moveTo( thisLoop[0].X * drawingScale/25, thisLoop[0].Y * drawingScale/25);
 				for (var jj=1;jj<numPoints;jj++){
-					context.lineTo( thisLoop[jj].X * drawingScale/5, thisLoop[jj].Y * drawingScale/5);
+					context.lineTo( thisLoop[jj].X * drawingScale/25, thisLoop[jj].Y * drawingScale/25);
 				}
 				context.closePath();
 			}
@@ -621,9 +630,11 @@ function dropBomb(){
 
 function detonateBody(b){
 	var bodyPos = b.GetTransform().position;
-	new Explosion(~~bodyPos.x, ~~bodyPos.y , 0,0, 4,1 );
+	new Explosion(bodyPos.x, bodyPos.y , 0,0, 1,0.5 );
 	createBlast(bodyPos);
 	destroy_list.push(b);
+	editLandscapeFixture(bodyPos.x *25,bodyPos.y *25,20);
+	console.log("destorying bomb at " + bodyPos.x + ", " + bodyPos.y);
 }
 
 function createBlast(position){
@@ -686,7 +697,7 @@ function updateLandscapeFixtures(){
 		landscapeBody.DestroyFixture(f);
 	}
 	
-	var SCALE = 5;
+	var SCALE = 25;
 
 	var fixDef = new b2FixtureDef;
     fixDef.density = 1.0;
@@ -718,17 +729,17 @@ function updateLandscapeFixtures(){
 }
 
 var cpr;
-function editLandscapeFixture(){
+function editLandscapeFixture(x,y,r){
 	//temporary test - make a fixed edit to landscape
 	cpr = new ClipperLib.Clipper();
 	
 	cpr.AddPaths(landscapeBody.clippablePath, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
 
-	var cutPath = [[{X:50,Y:50},{X:50,Y:100},{X:100,Y:100},{X:100,Y:50}]];
+	var cutPath = [[{X:x-r,Y:y-r},{X:x-r,Y:y+r},{X:x+r,Y:y+r},{X:x+r,Y:y-r}]];
+	
 	cpr.AddPaths(cutPath, ClipperLib.PolyType.ptClip, true);
 
-	var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, landscapeBody.clippablePath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+	var succeeded = cpr.Execute(ClipperLib.ClipType.ctUnion, landscapeBody.clippablePath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
 
-	updateLandscapeFixtures();
-	
+	landscapeUpdateScheduled=true;	
 }
