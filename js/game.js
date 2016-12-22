@@ -18,6 +18,7 @@ var willFireGun=false;
 var destroy_list = [];
 
 var floatingPlatform;
+var landscapeBody;
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
@@ -139,16 +140,14 @@ function init(){
 	   fixDef.shape = new b2PolygonShape;
 	   var bodyDef = new b2BodyDef;
        
-	   var levelBoxes = [[20,debugCanvas.height-10,debugCanvas.width,20, b2Body.b2_staticBody],
-	   
-						 [0,0,20,2000, b2Body.b2_staticBody],
+	   var levelBoxes = [[0,0,20,2000, b2Body.b2_staticBody],
 						 [2000-20,0,20,2000, b2Body.b2_staticBody],
 						 [0,2000,2000,20, b2Body.b2_staticBody],
 						 
-						 [100,100,100,100, b2Body.b2_staticBody],
 						 [1000,1000,800,100, b2Body.b2_dynamicBody, 1],
 	   ];
 	   var currentBox, halfwidth, halfheight, bodyType, thisBody;
+	   
 	   for (bb in levelBoxes){
 		   currentBox = levelBoxes[bb];
 		   halfwidth = currentBox[2]/2;
@@ -165,6 +164,23 @@ function init(){
 		   
 		   if (currentBox[5]){floatingPlatform = thisBody;}
 	   }
+	   
+	   //make a special polygon object for level. 
+	   //box2d will have a series of line fixtures.
+	   //will render using canvas (initially) as a polygon
+	   //object will be destructible using clipper.js
+	   
+	   var landscapeBodyDef = new b2BodyDef;
+	   landscapeBodyDef.type = b2Body.b2_staticBody;
+	   landscapeBodyDef.position.x = 0;
+       landscapeBodyDef.position.y =0;
+	   landscapeBody = world.CreateBody(landscapeBodyDef);
+	   //TODO create fixtures
+	   //make some path object suitable for use with jsclipper. attach it to the landscapeBody object
+	   landscapeBody.clippablePath = [[{X:50,Y:50},{X:150,Y:50},{X:150,Y:150},{X:50,Y:150}],
+                  [{X:60,Y:60},{X:60,Y:140},{X:140,Y:140},{X:140,Y:60}]];
+	   updateLandscapeFixtures();		  
+		
 	   
    	   //add an ellipse, to check the limit on vertices in a polygon shape. seems no real limit here - got up to 2048 ok!
 		var num_ellipse_points = 64;
@@ -187,9 +203,10 @@ function init(){
 		fixDef.shape = new b2PolygonShape();
 		bodyDef.position.x = 0;
 		bodyDef.position.y = 0;
-		fixDef.shape.SetAsEdge(new b2Vec2(0, 0), new b2Vec2(20, 0));
-		world.CreateBody(bodyDef).CreateFixture(fixDef);
+		//fixDef.shape.SetAsEdge(new b2Vec2(0, 0), new b2Vec2(20, 0));
+		//world.CreateBody(bodyDef).CreateFixture(fixDef);
 		
+		/*
 		//can make a custom method to make a series of these into an extended curve. check whether this snags
 		var currentPos = new b2Vec2(0,0);
 		var lastPos;
@@ -200,7 +217,7 @@ function init(){
 			fixDef.shape.SetAsEdge(currentPos, lastPos);
 			waveBody.CreateFixture(fixDef);
 		}
-		
+		*/
 		
 	   
        //create some objects
@@ -431,18 +448,45 @@ function draw_world(world, context) {
 	  
 	context.fillStyle= b.color || "#AAAAAA";
 
-	  
-    //A body has many fixtures
-    for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
-      var shape = f.GetShape();
-      var shapeType = shape.GetType();
-      if (isNaN(b.GetPosition().x)) {
-        alert('Invalid Position : ' + b.GetPosition().x);
-      } else {
-        drawShape(b, shape, context);
-      }
-    }
- 
+	if (b.clippablePath){
+		//custom path, possibly convex with holes, which box2d sees as just a series of edges.
+		//separately draw it using canvas.
+		//code very similar to code that sets up fixtures.
+		
+		var cPath = b.clippablePath;
+		var numLoops = cPath.length;
+		var numPoints;
+		if (numLoops==0){
+			console.log("no loops in clippable path. this is unexpected");
+		} else {
+			var thisLoop;
+			for (var ii=0;ii<numLoops;ii++){
+				thisLoop = cPath[ii];
+				numPoints = thisLoop.length;
+				context.moveTo( thisLoop[0].X * drawingScale/5, thisLoop[0].Y * drawingScale/5);
+				for (var jj=1;jj<numPoints;jj++){
+					context.lineTo( thisLoop[jj].X * drawingScale/5, thisLoop[jj].Y * drawingScale/5);
+				}
+				context.closePath();
+			}
+		}
+		context.fillStyle="rgba(0, 150, 75, 0.5)";
+		context.fill();
+		context.stroke();
+		
+	}
+	//else{
+		//A body has many fixtures
+		for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
+		  var shape = f.GetShape();
+		  var shapeType = shape.GetType();
+		  if (isNaN(b.GetPosition().x)) {
+			alert('Invalid Position : ' + b.GetPosition().x);
+		  } else {
+			drawShape(b, shape, context);
+		  }
+		}
+	//}
   }
   
   ctx.globalCompositeOperation = "lighter";
@@ -631,4 +675,36 @@ function checkContactUnderPlayer(c){
 	contactNormal.MulTM(playerBody.GetTransform().R);
 	if (contactNormal.y>-0.99){return false;}
 	return true;
+}
+
+function updateLandscapeFixtures(){
+	var SCALE = 5;
+
+	var fixDef = new b2FixtureDef;
+    fixDef.density = 1.0;
+    fixDef.friction = 0.5;
+    fixDef.restitution = 0.2; 
+	fixDef.shape = new b2PolygonShape;
+	
+	var cPath = landscapeBody.clippablePath;
+	var numLoops = cPath.length;
+	var numPoints;
+	if (numLoops==0){
+		console.log("no loops in clippable path. this is unexpected");
+		return;
+	}
+	var thisLoop, currentPos, nextPos;
+	for (var ii=0;ii<numLoops;ii++){
+		thisLoop = cPath[ii];
+		numPoints = thisLoop.length;
+		console.log("a loop with num points =" + numPoints);
+		currentPos = new b2Vec2(thisLoop[numPoints-1].X / SCALE, thisLoop[numPoints-1].Y / SCALE);
+		for (var jj=0;jj<numPoints;jj++){
+			nextPos = new b2Vec2(thisLoop[jj].X / SCALE, thisLoop[jj].Y / SCALE);
+			fixDef.shape.SetAsEdge(currentPos, nextPos);
+			console.log("making an edge from (" + currentPos.x + ", " + currentPos.y + ") to (" + nextPos.x + ", " + nextPos.y + ")" );
+			landscapeBody.CreateFixture(fixDef);
+			currentPos = nextPos;
+		}
+	}
 }
