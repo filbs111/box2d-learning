@@ -191,7 +191,7 @@ function init(){
 			circleCoords.push({X:Math.cos(ang),Y:Math.sin(ang)})
 		}
 		for (var aa=0;aa<40;aa++){
-			for (var bb=0;bb<4;bb++){
+			for (var bb=0;bb<10;bb++){
 				var thisCircle =[];
 				for (var ii=0;ii<20;ii++){
 					thisCircle.push({X:-1000+aa*25+10*circleCoords[ii].X,Y:75+bb*25-10*circleCoords[ii].Y});
@@ -443,6 +443,8 @@ function calcInterpPositions(remainderFraction){
 }
 
 var drawingScale;
+var skipLandsDraw=false;
+var skipLandsClip=true;
 
 function draw_world(world, context) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
@@ -477,11 +479,30 @@ function draw_world(world, context) {
 	context.fillStyle= b.color || "#AAAAAA";
 
 	if (b.clippablePath){
+		if (skipLandsDraw){continue;}
 		//custom path, possibly convex with holes, which box2d sees as just a series of edges.
 		//separately draw it using canvas.
 		//code very similar to code that sets up fixtures.
 		
-		var cPath = b.clippablePath;
+		//try simply clipping the landscape to the screen rectangle. this may give performance,
+		//depending on how canvas speed (and speed of clip shape -> canvas commands)compares with clipper.js speed. guess canvas is clipping internally anyway.
+		
+		var cPath =[];
+		if (!skipLandsClip){
+			cpr = new ClipperLib.Clipper();
+			cpr.AddPaths(landscapeBody.clippablePath, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
+
+			var r=850;	//approx. could crop tighter
+			var x=25*playerBody.interpPos.x;
+			var y=25*playerBody.interpPos.y;
+			var cutPath = [{X:x-r,Y:y-r},{X:x-r,Y:y+r},{X:x+r,Y:y+r},{X:x+r,Y:y-r}]; //square
+			cpr.AddPath(cutPath, ClipperLib.PolyType.ptClip, true);
+
+			var succeeded = cpr.Execute(ClipperLib.ClipType.ctIntersection, cPath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+		}else{
+			cPath = b.clippablePath;
+		}		
+ 
 		var numLoops = cPath.length;
 		var numPoints;
 		if (numLoops==0){
