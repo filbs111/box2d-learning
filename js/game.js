@@ -141,7 +141,7 @@ function init(){
 	   fixDef.shape = new b2PolygonShape;
 	   var bodyDef = new b2BodyDef;
        
-	   var levelBoxes = [[0,0,20,2000, b2Body.b2_staticBody],
+	   var levelBoxes = [//[0,0,20,2000, b2Body.b2_staticBody],
 						 [2000-20,0,20,2000, b2Body.b2_staticBody],
 						 [0,2000,2000,20, b2Body.b2_staticBody],
 						 
@@ -179,7 +179,10 @@ function init(){
 	   //TODO create fixtures
 	   //make some path object suitable for use with jsclipper. attach it to the landscapeBody object
 	   landscapeBody.clippablePath = [[{X:50,Y:50},{X:150,Y:50},{X:150,Y:150},{X:50,Y:150}],
-                  [{X:60,Y:60},{X:60,Y:140},{X:140,Y:140},{X:140,Y:60}]];
+                  [{X:60,Y:60},{X:60,Y:140},{X:140,Y:140},{X:140,Y:60}],
+				  [{X:-2000,Y:-1000},{X:0,Y:-1000},{X:0,Y:1000},{X:-2000,Y:1000}],
+				  [{X:-1020,Y:-50},{X:-1020,Y:50},{X:-980,Y:50},{X:-980,Y:-50}]
+				  ];
 	   ClipperLib.JS.ScaleUpPaths(landscapeBody.clippablePath, 5);
 
 
@@ -239,10 +242,9 @@ function init(){
              );
           }
           bodyDef.position.x = 10 + Math.random() * 20;
-          bodyDef.position.y = Math.random() * 20;
+          bodyDef.position.y = -20+Math.random() * 20;
           world.CreateBody(bodyDef).CreateFixture(fixDef);
        }
-	   
 	   
 	   //add a player triangle object
 		var points = [ [-0.5,-0.35], [0.5, -0.35], [0, 0.7]];
@@ -257,8 +259,8 @@ function init(){
 		fixDef.shape.SetAsArray(vecpoints, vecpoints.length);
 		fixDef.filter.categoryBits=2;
 		fixDef.filter.maskBits=3;	//collide with 1,2
-		bodyDef.position.x = 40;
-		bodyDef.position.y = 5;
+		bodyDef.position.x = -200;
+		bodyDef.position.y = 0;
 		playerBody = world.CreateBody(bodyDef);
 		playerBody.CreateFixture(fixDef);
 		playerBody.SetAngularDamping(10);
@@ -481,10 +483,10 @@ function draw_world(world, context) {
 		}
 		context.fillStyle="rgba(0, 150, 75, 0.5)";
 		context.fill();
-		context.stroke();
+		//context.stroke();
 		
 	}
-	//else{
+	else{
 		//A body has many fixtures
 		for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
 		  var shape = f.GetShape();
@@ -495,7 +497,7 @@ function draw_world(world, context) {
 			drawShape(b, shape, context);
 		  }
 		}
-	//}
+	}
   }
   
   ctx.globalCompositeOperation = "lighter";
@@ -580,7 +582,7 @@ function draw_world(world, context) {
   context.fill();
 
   //this will create the outline of a shape
-  context.stroke();
+  //context.stroke();
   } 
 }
 
@@ -612,7 +614,7 @@ bombfixDef.shape = new b2CircleShape(
 		 );	  		 
    
 function dropBomb(){
-  var fireSpeed=50;	//0 for freefall bomb, +ve for forward firing
+  var fireSpeed=25;	//0 for freefall bomb, +ve for forward firing
   var fwd = playerBody.GetTransform().R.col2;
   
   var playerPosition = playerBody.GetTransform().position;
@@ -642,12 +644,15 @@ function createBlast(position){
 	//iterating over all bodies for each blast probably inefficient
 	var bodyPos, relativePos, distSq, multiplier;
 	for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+		if (b.clippablePath){continue;}
 		bodyPos = b.GetTransform().position;
 		relativePos = {x:bodyPos.x-position.x,
 							y:bodyPos.y-position.y};
 		distSq = relativePos.x*relativePos.x + relativePos.y*relativePos.y;
 		multiplier = 10/(0.5+distSq);
-		b.ApplyImpulse(new b2Vec2(relativePos.x*multiplier,relativePos.y*multiplier), b.GetWorldCenter());	//upward force
+		if (!b.countdown && b!=playerBody){	//not a bomb or player (for development convenience)
+			b.ApplyImpulse(new b2Vec2(relativePos.x*multiplier,relativePos.y*multiplier), b.GetWorldCenter());	//upward force
+		}
 		//TODO impulse dependent on object size
 	}
 	
@@ -689,6 +694,13 @@ function checkContactUnderPlayer(c){
 }
 
 function updateLandscapeFixtures(){
+	
+	//clean. ideally should check that delta small enough to not clean up a freshly made lone circle
+	//clean unfortunately does things like presumably merging points at average position, therefore if 2 points from a beveled corner merge, then the
+	//resulting corner moves "in". TODO write own clean method that works better
+	//landscapeBody.clippablePath = ClipperLib.JS.Clean(landscapeBody.clippablePath , 4);
+	
+	
 	//delete existing fixtures. 
 	//this will mean deleting and recreating many fixtures. TODO avoid this
 	var nextf;
@@ -696,6 +708,20 @@ function updateLandscapeFixtures(){
 		nextf = f.GetNext();
 		landscapeBody.DestroyFixture(f);
 	}
+	
+	/*
+	//delete and remake the whole object - maybe less crashy?
+	var landscapeBodyDef = new b2BodyDef;
+	   landscapeBodyDef.type = b2Body.b2_staticBody;
+	   landscapeBodyDef.position.x = 0;
+       landscapeBodyDef.position.y =0;
+	var newlandscapeBody = world.CreateBody(landscapeBodyDef);
+		newlandscapeBody.clippablePath = landscapeBody.clippablePath;
+		world.DestroyBody(landscapeBody);
+		
+		//console.log("check the path still exists " + newlandscapeBody.clippablePath );
+		landscapeBody = newlandscapeBody;
+		*/
 	
 	var SCALE = 25;
 
@@ -716,19 +742,23 @@ function updateLandscapeFixtures(){
 	for (var ii=0;ii<numLoops;ii++){
 		thisLoop = cPath[ii];
 		numPoints = thisLoop.length;
-		console.log("a loop with num points =" + numPoints);
+		//console.log("a loop with num points =" + numPoints);
 		currentPos = new b2Vec2(thisLoop[numPoints-1].X / SCALE, thisLoop[numPoints-1].Y / SCALE);
 		for (var jj=0;jj<numPoints;jj++){
 			nextPos = new b2Vec2(thisLoop[jj].X / SCALE, thisLoop[jj].Y / SCALE);
 			fixDef.shape.SetAsEdge(currentPos, nextPos);
-			console.log("making an edge from (" + currentPos.x + ", " + currentPos.y + ") to (" + nextPos.x + ", " + nextPos.y + ")" );
+			//console.log("making an edge from (" + currentPos.x + ", " + currentPos.y + ") to (" + nextPos.x + ", " + nextPos.y + ")" );
 			landscapeBody.CreateFixture(fixDef);
 			currentPos = nextPos;
 		}
 	}
+	
+	
+	
 }
 
 var cpr;
+var shouldClean=false;
 function editLandscapeFixture(x,y,r){
 	//temporary test - make a fixed edit to landscape
 	cpr = new ClipperLib.Clipper();
@@ -737,14 +767,24 @@ function editLandscapeFixture(x,y,r){
 
 	//var cutPath = [{X:x-r,Y:y-r},{X:x-r,Y:y+r},{X:x+r,Y:y+r},{X:x+r,Y:y-r}]; //square
 	var cutPath=[];	//circle. todo precalculate
-	for(var aa=0;aa<10;aa++){
-		var ang = aa*Math.PI/5;
+	for(var aa=0;aa<12;aa++){
+		var ang = aa*Math.PI/6;
 		cutPath.push({X:x+r*Math.cos(ang), Y:y+r*Math.sin(ang)});
 	}
 	
 	cpr.AddPath(cutPath, ClipperLib.PolyType.ptClip, true);
 
-	var succeeded = cpr.Execute(ClipperLib.ClipType.ctUnion, landscapeBody.clippablePath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+	var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, landscapeBody.clippablePath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
 
-	landscapeUpdateScheduled=true;	
+	landscapeUpdateScheduled=true;
+
+	/*
+	//print info about the landscape
+	console.log("size of landscape array: " + landscapeBody.clippablePath.length);
+	var totalEdges=0;
+	for (var ii in landscapeBody.clippablePath){
+		totalEdges += landscapeBody.clippablePath[ii].length;
+	}
+	console.log("num edges: " + totalEdges);
+	*/
 }
