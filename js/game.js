@@ -183,6 +183,23 @@ function init(){
 				  [{X:-2000,Y:-1000},{X:0,Y:-1000},{X:0,Y:1000},{X:-2000,Y:1000}],
 				  [{X:-1020,Y:-50},{X:-1020,Y:50},{X:-980,Y:50},{X:-980,Y:-50}]
 				  ];
+		
+		//add a grid of circular holes to see impact on framerate
+		var circleCoords=[];
+		for (var ii=0;ii<20;ii++){
+			var ang = ii*Math.PI/10;
+			circleCoords.push({X:Math.cos(ang),Y:Math.sin(ang)})
+		}
+		for (var aa=0;aa<40;aa++){
+			for (var bb=0;bb<4;bb++){
+				var thisCircle =[];
+				for (var ii=0;ii<20;ii++){
+					thisCircle.push({X:-1000+aa*25+10*circleCoords[ii].X,Y:75+bb*25-10*circleCoords[ii].Y});
+				}
+				landscapeBody.clippablePath.push(thisCircle);
+			}
+		}
+				  
 	   ClipperLib.JS.ScaleUpPaths(landscapeBody.clippablePath, 5);
 
 
@@ -481,7 +498,7 @@ function draw_world(world, context) {
 				context.closePath();
 			}
 		}
-		context.fillStyle="rgba(0, 150, 75, 0.5)";
+		context.fillStyle="rgba(150, 150, 125, 0.5)";
 		context.fill();
 		//context.stroke();
 		
@@ -767,8 +784,8 @@ function editLandscapeFixture(x,y,r){
 
 	//var cutPath = [{X:x-r,Y:y-r},{X:x-r,Y:y+r},{X:x+r,Y:y+r},{X:x+r,Y:y-r}]; //square
 	var cutPath=[];	//circle. todo precalculate
-	for(var aa=0;aa<12;aa++){
-		var ang = aa*Math.PI/6;
+	for(var aa=0;aa<10;aa++){
+		var ang = aa*Math.PI/5;
 		cutPath.push({X:x+r*Math.cos(ang), Y:y+r*Math.sin(ang)});
 	}
 	
@@ -779,7 +796,7 @@ function editLandscapeFixture(x,y,r){
 	//custom clean function - only remove a point if both the previous and next points are within a range limit
 	//currently inefficient
 	var resultPath=[]; //possibly faster to edit existing path
-	rangeLimitSq = 105;
+	rangeLimitSq = 120;
 	var paths = landscapeBody.clippablePath;
 	for (pp in paths){
 		var thisResultPath=[];
@@ -795,7 +812,7 @@ function editLandscapeFixture(x,y,r){
 			if (prevDSq>rangeLimitSq || thisDSq>rangeLimitSq){
 				thisResultPath.push(thisPoint);
 			}else{
-				console.log("removing a point");
+				//console.log("removing a point");
 			}
 		}
 		if (thisResultPath.length>2){
