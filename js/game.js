@@ -636,7 +636,7 @@ function detonateBody(b){
 	createBlast(bodyPos);
 	destroy_list.push(b);
 	editLandscapeFixture(bodyPos.x *25,bodyPos.y *25,20);
-	console.log("destorying bomb at " + bodyPos.x + ", " + bodyPos.y);
+	//console.log("destroying bomb at " + bodyPos.x + ", " + bodyPos.y);
 }
 
 function createBlast(position){
@@ -776,6 +776,37 @@ function editLandscapeFixture(x,y,r){
 
 	var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, landscapeBody.clippablePath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
 
+	//custom clean function - only remove a point if both the previous and next points are within a range limit
+	//currently inefficient
+	var resultPath=[]; //possibly faster to edit existing path
+	rangeLimitSq = 105;
+	var paths = landscapeBody.clippablePath;
+	for (pp in paths){
+		var thisResultPath=[];
+		var thisPath = paths[pp];
+		var numPoints = thisPath.length;
+		
+		for (var ii=0;ii<numPoints;ii++){
+			var prevPoint = thisPath[(ii+numPoints-1)%numPoints];
+			var thisPoint = thisPath[(ii+numPoints)%numPoints];
+			var nextPoint = thisPath[(ii+numPoints+1)%numPoints];
+			var prevDSq = Math.pow(prevPoint.X-thisPoint.X,2) + Math.pow(prevPoint.Y-thisPoint.Y,2);
+			var thisDSq = Math.pow(thisPoint.X-nextPoint.X,2) + Math.pow(thisPoint.Y-nextPoint.Y,2);
+			if (prevDSq>rangeLimitSq || thisDSq>rangeLimitSq){
+				thisResultPath.push(thisPoint);
+			}else{
+				console.log("removing a point");
+			}
+		}
+		if (thisResultPath.length>2){
+			resultPath.push(thisResultPath);
+		}else{
+			console.log("***************************** too short path (" + thisResultPath.length + ")*********************");
+		}
+	}
+	landscapeBody.clippablePath = resultPath;
+	
+	
 	landscapeUpdateScheduled=true;
 
 	/*
