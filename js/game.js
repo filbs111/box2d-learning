@@ -21,6 +21,8 @@ var floatingPlatform;
 var landscapeBody;
 var landscapeUpdateScheduled=false;
 
+var gridOfPaths;
+
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
         , b2BodyDef = Box2D.Dynamics.b2BodyDef
@@ -203,11 +205,9 @@ function init(){
 	   ClipperLib.JS.ScaleUpPaths(landscapeBody.clippablePath, 5);
 		
 	   //chop landscape into a grid
-	   var gridOfPaths = chopIntoGrid(landscapeBody.clippablePath);
-		
-	   
+	   gridOfPaths = chopIntoGrid(landscapeBody.clippablePath);
 
-	   updateLandscapeFixtures();		  
+	   updateLandscapeFixtures(landscapeBody);		  
 		
 	   
    	   //add an ellipse, to check the limit on vertices in a polygon shape. seems no real limit here - got up to 2048 ok!
@@ -407,7 +407,7 @@ function update(timeNow) {
 	   
 	   if (landscapeUpdateScheduled){
 		  landscapeUpdateScheduled=false;
-		  updateLandscapeFixtures();
+		  updateLandscapeFixtures(landscapeBody);
 	   }
 	   
 	   // Destroy all bodies in destroy_list
@@ -735,7 +735,7 @@ function checkContactUnderPlayer(c){
 	return true;
 }
 
-function updateLandscapeFixtures(){
+function updateLandscapeFixtures(body){
 	
 	//clean. ideally should check that delta small enough to not clean up a freshly made lone circle
 	//clean unfortunately does things like presumably merging points at average position, therefore if 2 points from a beveled corner merge, then the
@@ -746,24 +746,10 @@ function updateLandscapeFixtures(){
 	//delete existing fixtures. 
 	//this will mean deleting and recreating many fixtures. TODO avoid this
 	var nextf;
-	for (var f = landscapeBody.GetFixtureList(); f != null; f=nextf) {
+	for (var f = body.GetFixtureList(); f != null; f=nextf) {
 		nextf = f.GetNext();
-		landscapeBody.DestroyFixture(f);
+		body.DestroyFixture(f);
 	}
-	
-	/*
-	//delete and remake the whole object - maybe less crashy?
-	var landscapeBodyDef = new b2BodyDef;
-	   landscapeBodyDef.type = b2Body.b2_staticBody;
-	   landscapeBodyDef.position.x = 0;
-       landscapeBodyDef.position.y =0;
-	var newlandscapeBody = world.CreateBody(landscapeBodyDef);
-		newlandscapeBody.clippablePath = landscapeBody.clippablePath;
-		world.DestroyBody(landscapeBody);
-		
-		//console.log("check the path still exists " + newlandscapeBody.clippablePath );
-		landscapeBody = newlandscapeBody;
-		*/
 	
 	var SCALE = 25;
 
@@ -773,7 +759,7 @@ function updateLandscapeFixtures(){
     fixDef.restitution = 0.2; 
 	fixDef.shape = new b2PolygonShape;
 	
-	var cPath = landscapeBody.clippablePath;
+	var cPath = body.clippablePath;
 	var numLoops = cPath.length;
 	var numPoints;
 	if (numLoops==0){
@@ -790,7 +776,7 @@ function updateLandscapeFixtures(){
 			nextPos = new b2Vec2(thisLoop[jj].X / SCALE, thisLoop[jj].Y / SCALE);
 			fixDef.shape.SetAsEdge(currentPos, nextPos);
 			//console.log("making an edge from (" + currentPos.x + ", " + currentPos.y + ") to (" + nextPos.x + ", " + nextPos.y + ")" );
-			landscapeBody.CreateFixture(fixDef);
+			body.CreateFixture(fixDef);
 			currentPos = nextPos;
 		}
 	}
@@ -866,9 +852,9 @@ function chopIntoGrid(inputPathArr){
 	//want to chop it up sensibly. 
 	
 	//TODO some way to look up blocks via co-ords.
-	//initial implementation -can just store bounding box for each block, do trivial check or overlap with each (and if so clip that block), every time cut an explosion circle, or display the screen. expect this (at least for initial 4x4=16 blocks) to be inexpensive. 
+	//initial implementation -can just store bounding box for each block, do trivial check or overlap with each (and if so clip that block), every time cut an explosion circle, or display the screen. expect this (at least for initial 8x8=64 blocks) to be inexpensive. 
 	
-	//intially - just chop it into 4x4 = 16 blocks
+	//intially - just chop it into 8x8 = 64 blocks
 	
 	console.log("chopping up landscape into a grid...");
 	var outputArray=[];
@@ -880,12 +866,12 @@ function chopIntoGrid(inputPathArr){
 	
 	//get bounding box of landscape.
 	var bounds = ClipperLib.Clipper.GetBounds(landsPath);
-	var xstep = (bounds.right-bounds.left)/16;
-	var ystep = (bounds.bottom-bounds.top)/16;
+	var xstep = (bounds.right-bounds.left)/8;
+	var ystep = (bounds.bottom-bounds.top)/8;
 	
 	//chop each block out. TODO make this faster by recursive binary chopping
-	for (var ii=0;ii<16;ii++){
-		for (var jj=0;jj<16;jj++){
+	for (var ii=0;ii<8;ii++){
+		for (var jj=0;jj<8;jj++){
 			var left = bounds.left + ii*xstep;
 			var right = left+xstep;
 			var top = bounds.top + jj*ystep;
