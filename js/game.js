@@ -18,10 +18,9 @@ var willFireGun=false;
 var destroy_list = [];
 
 var floatingPlatform;
-var landscapeBody;
-var landscapeUpdateScheduled=false;
 
 var landscapeBlocks=[];
+var scheduledBlocksToUpdate=[];
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
@@ -177,7 +176,6 @@ function init(){
 	   landscapeBodyDef.type = b2Body.b2_staticBody;
 	   landscapeBodyDef.position.x = 0;
        landscapeBodyDef.position.y =0;
-	   //landscapeBody = world.CreateBody(landscapeBodyDef);
 	   //TODO create fixtures
 	   //make some path object suitable for use with jsclipper. attach it to the landscapeBody object
 	   var landscapeBodyClippablePath = [[{X:50,Y:50},{X:150,Y:50},{X:150,Y:150},{X:50,Y:150}],
@@ -216,9 +214,7 @@ function init(){
 			updateLandscapeFixtures(thisBody);
 			landscapeBlocks.push(thisBody);
 	   }
-	   
-	   //updateLandscapeFixtures(landscapeBody);		  
-	   
+	   	   
    	   //add an ellipse, to check the limit on vertices in a polygon shape. seems no real limit here - got up to 2048 ok!
 		var num_ellipse_points = 64;
 		var ellipse_points = [];
@@ -414,14 +410,11 @@ function update(timeNow) {
 		  }
 	   }
 	   
-	   if (landscapeUpdateScheduled){
-		  landscapeUpdateScheduled=false;
-		  //updateLandscapeFixtures(landscapeBody);
-		  for (bb in landscapeBlocks){
-			  var thisBlock = landscapeBlocks[bb];
-			  updateLandscapeFixtures(thisBlock);
-		  }
+	   for (bb in scheduledBlocksToUpdate){
+		 var thisBlock = scheduledBlocksToUpdate[bb];
+		 updateLandscapeFixtures(thisBlock);
 	   }
+	   scheduledBlocksToUpdate=[];
 	   
 	   // Destroy all bodies in destroy_list
 	  for (var i in destroy_list) {
@@ -523,10 +516,7 @@ function draw_world(world, context) {
 			//could make faster check by convoluting bounds with screen size
 			var bounds = b.bounds;
 			if (screenBounds.left>bounds.right || screenBounds.top>bounds.bottom || screenBounds.right<bounds.left || screenBounds.bottom<bounds.top){
-				//console.log("skipped drawing a block");
 				continue;
-			}else{
-				//console.log("will draw!");
 			}
 			
 			var thisLoop;
@@ -755,12 +745,6 @@ function checkContactUnderPlayer(c){
 
 function updateLandscapeFixtures(body){
 	
-	//clean. ideally should check that delta small enough to not clean up a freshly made lone circle
-	//clean unfortunately does things like presumably merging points at average position, therefore if 2 points from a beveled corner merge, then the
-	//resulting corner moves "in". TODO write own clean method that works better
-	//landscapeBody.clippablePath = ClipperLib.JS.Clean(landscapeBody.clippablePath , 4);
-	
-	
 	//delete existing fixtures. 
 	//this will mean deleting and recreating many fixtures. TODO avoid this
 	var nextf;
@@ -812,6 +796,15 @@ function editLandscapeFixtureBlocks(x,y,r){
 }
 
 function editLandscapeFixture(body,x,y,r){
+	
+	//confirm is within bounds of block
+	//TODO use the grid systme directly
+	var bounds = body.bounds;
+	if (x-r>bounds.right || y-r>bounds.bottom || x+r<bounds.left || y+r<bounds.top){
+		return;
+	}
+	
+	
 	//temporary test - make a fixed edit to landscape
 	cpr = new ClipperLib.Clipper();
 	
@@ -858,7 +851,7 @@ function editLandscapeFixture(body,x,y,r){
 	}
 	body.clippablePath = resultPath;
 	
-	landscapeUpdateScheduled=true;
+	scheduledBlocksToUpdate.push(body);
 }
 
 function chopIntoGrid(landsPath){
@@ -866,7 +859,7 @@ function chopIntoGrid(landsPath){
 	//want to chop it up sensibly. 
 	
 	//TODO some way to look up blocks via co-ords.
-	//initial implementation -can just store bounding box for each block, do trivial check or overlap with each (and if so clip that block), every time cut an explosion circle, or display the screen. expect this (at least for initial 8x8=64 blocks) to be inexpensive. 
+	//initial implementation -can just store bounding box for each block, do trivial check or overlap with each (and if so clip that block), every time cut an explosion circle, or display the screen. expect this (at least for initial 16x16=256 blocks) to be inexpensive. 
 	
 	//intially - just chop it into 8x8 = 64 blocks
 	
@@ -877,14 +870,16 @@ function chopIntoGrid(landsPath){
 	
 	printPathsInfo(landsPath);
 	
+	var gridDivs = 16;
+	
 	//get bounding box of landscape.
 	var bounds = ClipperLib.Clipper.GetBounds(landsPath);
-	var xstep = (bounds.right-bounds.left)/8;
-	var ystep = (bounds.bottom-bounds.top)/8;
+	var xstep = (bounds.right-bounds.left)/gridDivs;
+	var ystep = (bounds.bottom-bounds.top)/gridDivs;
 	var gap=5;	//for illustration. TODO remove
 	//chop each block out. TODO make this faster by recursive binary chopping
-	for (var ii=0;ii<8;ii++){
-		for (var jj=0;jj<8;jj++){
+	for (var ii=0;ii<gridDivs;ii++){
+		for (var jj=0;jj<gridDivs;jj++){
 			var left = bounds.left + ii*xstep + gap;
 			var right = left+xstep - gap;
 			var top = bounds.top + jj*ystep + gap;
