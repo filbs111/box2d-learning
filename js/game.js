@@ -199,9 +199,13 @@ function init(){
 				landscapeBody.clippablePath.push(thisCircle);
 			}
 		}
-				  
+		
 	   ClipperLib.JS.ScaleUpPaths(landscapeBody.clippablePath, 5);
-
+		
+	   //chop landscape into a grid
+	   var gridOfPaths = chopIntoGrid(landscapeBody.clippablePath);
+		
+	   
 
 	   updateLandscapeFixtures();		  
 		
@@ -844,7 +848,6 @@ function editLandscapeFixture(x,y,r){
 	}
 	landscapeBody.clippablePath = resultPath;
 	
-	
 	landscapeUpdateScheduled=true;
 
 	/*
@@ -856,4 +859,75 @@ function editLandscapeFixture(x,y,r){
 	}
 	console.log("num edges: " + totalEdges);
 	*/
+}
+
+function chopIntoGrid(inputPathArr){
+	//input is a set of paths - eg a shape with a hole is 2 paths
+	//want to chop it up sensibly. 
+	
+	//TODO some way to look up blocks via co-ords.
+	//initial implementation -can just store bounding box for each block, do trivial check or overlap with each (and if so clip that block), every time cut an explosion circle, or display the screen. expect this (at least for initial 4x4=16 blocks) to be inexpensive. 
+	
+	//intially - just chop it into 4x4 = 16 blocks
+	
+	console.log("chopping up landscape into a grid...");
+	var outputArray=[];
+
+	//print out information about initial landscape (loops, points)
+	
+	var landsPath = landscapeBody.clippablePath;
+	printPathsInfo(landsPath);
+	
+	//get bounding box of landscape.
+	var bounds = ClipperLib.Clipper.GetBounds(landsPath);
+	var xstep = (bounds.right-bounds.left)/16;
+	var ystep = (bounds.bottom-bounds.top)/16;
+	
+	//chop each block out. TODO make this faster by recursive binary chopping
+	for (var ii=0;ii<16;ii++){
+		for (var jj=0;jj<16;jj++){
+			var left = bounds.left + ii*xstep;
+			var right = left+xstep;
+			var top = bounds.top + jj*ystep;
+			var bottom = top + ystep;
+			var clipPath = [{X:left, Y:top}, {X:left, Y:bottom}, {X:right, Y:bottom}, {X:right, Y:top}];
+			var resultPath=[];
+			
+			cpr = new ClipperLib.Clipper();
+			cpr.AddPaths(landsPath, ClipperLib.PolyType.ptSubject, true);
+			cpr.AddPath(clipPath, ClipperLib.PolyType.ptClip, true);
+
+			var succeeded = cpr.Execute(ClipperLib.ClipType.ctIntersection, resultPath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+			if (resultPath.length>0){
+				printPathsInfo(resultPath);
+				outputArray.push({
+					paths:resultPath,
+					bounds:ClipperLib.Clipper.GetBounds(resultPath)	//keep bounding box info on block object.
+				});
+			}else{
+				console.log("no paths in result!");
+			}
+		}
+	}
+	return outputArray;
+}
+		
+function printPathsInfo(paths){
+	var numLoops = paths.length;
+	var numPoints;
+	if (numLoops==0){
+		console.log("no loops to chop up!");
+		return;
+	}else{
+		//console.log("number of loops: " + numLoops);
+	}
+	var thisLoop;
+	var totalPoints=0;
+	for (var ii=0;ii<numLoops;ii++){
+		thisLoop = paths[ii];
+		numPoints = thisLoop.length;
+		totalPoints+=numPoints;
+		//console.log("a loop with num points =" + numPoints);
+	}
+	console.log("total points: " + totalPoints);
 }
