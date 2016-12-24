@@ -21,7 +21,7 @@ var floatingPlatform;
 var landscapeBody;
 var landscapeUpdateScheduled=false;
 
-var gridOfPaths;
+var landscapeBlocks=[];
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
@@ -177,10 +177,10 @@ function init(){
 	   landscapeBodyDef.type = b2Body.b2_staticBody;
 	   landscapeBodyDef.position.x = 0;
        landscapeBodyDef.position.y =0;
-	   landscapeBody = world.CreateBody(landscapeBodyDef);
+	   //landscapeBody = world.CreateBody(landscapeBodyDef);
 	   //TODO create fixtures
 	   //make some path object suitable for use with jsclipper. attach it to the landscapeBody object
-	   landscapeBody.clippablePath = [[{X:50,Y:50},{X:150,Y:50},{X:150,Y:150},{X:50,Y:150}],
+	   var landscapeBodyClippablePath = [[{X:50,Y:50},{X:150,Y:50},{X:150,Y:150},{X:50,Y:150}],
                   [{X:60,Y:60},{X:60,Y:140},{X:140,Y:140},{X:140,Y:60}],
 				  [{X:-2000,Y:-1000},{X:0,Y:-1000},{X:0,Y:1000},{X:-2000,Y:1000}],
 				  [{X:-1020,Y:-50},{X:-1020,Y:50},{X:-980,Y:50},{X:-980,Y:-50}]
@@ -198,17 +198,26 @@ function init(){
 				for (var ii=0;ii<20;ii++){
 					thisCircle.push({X:-1000+aa*25+10*circleCoords[ii].X,Y:75+bb*25-10*circleCoords[ii].Y});
 				}
-				landscapeBody.clippablePath.push(thisCircle);
+				landscapeBodyClippablePath.push(thisCircle);
 			}
 		}
 		
-	   ClipperLib.JS.ScaleUpPaths(landscapeBody.clippablePath, 5);
+	   ClipperLib.JS.ScaleUpPaths(landscapeBodyClippablePath, 5);
 		
 	   //chop landscape into a grid
-	   gridOfPaths = chopIntoGrid(landscapeBody.clippablePath);
-
-	   updateLandscapeFixtures(landscapeBody);		  
-		
+	   var gridOfPaths = chopIntoGrid(landscapeBodyClippablePath);
+	   var numBlocks = gridOfPaths.length;
+	   for (var ii=0;ii<numBlocks;ii++){
+			//create a new body
+			var thisGridInfo = gridOfPaths[ii];
+			var thisBody = world.CreateBody(landscapeBodyDef);
+			thisBody.clippablePath = thisGridInfo.paths;
+			thisBody.bounds = thisGridInfo.bounds;
+			updateLandscapeFixtures(thisBody);
+			landscapeBlocks.push(thisBody);
+	   }
+	   
+	   //updateLandscapeFixtures(landscapeBody);		  
 	   
    	   //add an ellipse, to check the limit on vertices in a polygon shape. seems no real limit here - got up to 2048 ok!
 		var num_ellipse_points = 64;
@@ -407,7 +416,11 @@ function update(timeNow) {
 	   
 	   if (landscapeUpdateScheduled){
 		  landscapeUpdateScheduled=false;
-		  updateLandscapeFixtures(landscapeBody);
+		  //updateLandscapeFixtures(landscapeBody);
+		  for (bb in landscapeBlocks){
+			  var thisBlock = landscapeBlocks[bb];
+			  updateLandscapeFixtures(thisBlock);
+		  }
 	   }
 	   
 	   // Destroy all bodies in destroy_list
@@ -461,6 +474,13 @@ function draw_world(world, context) {
   context.fillStyle="#AAAAAA";
   context.strokeStyle="#000000";
   
+  var screenBounds = {
+	  left: (drawingScale*playerBody.interpPos.x - canvas.width/2)/(drawingScale/25),
+	  right: (drawingScale*playerBody.interpPos.x + canvas.width/2)/(drawingScale/25),
+	  top: (drawingScale*playerBody.interpPos.y - canvas.height/2)/(drawingScale/25),
+	  bottom: (drawingScale*playerBody.interpPos.y + canvas.height/2)/(drawingScale/25)
+  }
+  
   //highlight/dehighlight bodies touched by player
   var playerContactCount =0;
   for (var c = playerBody.GetContactList(); c; c = c.next) {
@@ -491,28 +511,26 @@ function draw_world(world, context) {
 		//try simply clipping the landscape to the screen rectangle. this may give performance,
 		//depending on how canvas speed (and speed of clip shape -> canvas commands)compares with clipper.js speed. guess canvas is clipping internally anyway.
 		
-		var cPath =[];
-		if (!skipLandsClip){
-			cpr = new ClipperLib.Clipper();
-			cpr.AddPaths(landscapeBody.clippablePath, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
-
-			var r=850;	//approx. could crop tighter
-			var x=25*playerBody.interpPos.x;
-			var y=25*playerBody.interpPos.y;
-			var cutPath = [{X:x-r,Y:y-r},{X:x-r,Y:y+r},{X:x+r,Y:y+r},{X:x+r,Y:y-r}]; //square
-			cpr.AddPath(cutPath, ClipperLib.PolyType.ptClip, true);
-
-			var succeeded = cpr.Execute(ClipperLib.ClipType.ctIntersection, cPath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
-		}else{
-			cPath = b.clippablePath;
-		}		
+		var cPath = b.clippablePath;
  
 		var numLoops = cPath.length;
 		var numPoints;
 		if (numLoops==0){
 			console.log("no loops in clippable path. this is unexpected");
 		} else {
+			
+			//confirm is within bounds of screen.
+			//could make faster check by convoluting bounds with screen size
+			var bounds = b.bounds;
+			if (screenBounds.left>bounds.right || screenBounds.top>bounds.bottom || screenBounds.right<bounds.left || screenBounds.bottom<bounds.top){
+				//console.log("skipped drawing a block");
+				continue;
+			}else{
+				//console.log("will draw!");
+			}
+			
 			var thisLoop;
+			context.beginPath()
 			for (var ii=0;ii<numLoops;ii++){
 				thisLoop = cPath[ii];
 				numPoints = thisLoop.length;
@@ -523,7 +541,7 @@ function draw_world(world, context) {
 				context.closePath();
 			}
 		}
-		context.fillStyle="rgba(150, 150, 125, 0.5)";
+		context.fillStyle="rgba(150, 150, 125, 0.75)";
 		context.fill();
 		//context.stroke();
 		
@@ -677,7 +695,7 @@ function detonateBody(b){
 	new Explosion(bodyPos.x, bodyPos.y , 0,0, 1,0.5 );
 	createBlast(bodyPos);
 	destroy_list.push(b);
-	editLandscapeFixture(bodyPos.x *25,bodyPos.y *25,20);
+	editLandscapeFixtureBlocks(bodyPos.x *25,bodyPos.y *25,20);
 	//console.log("destroying bomb at " + bodyPos.x + ", " + bodyPos.y);
 }
 
@@ -780,18 +798,24 @@ function updateLandscapeFixtures(body){
 			currentPos = nextPos;
 		}
 	}
-	
-	
-	
 }
 
 var cpr;
 var shouldClean=false;
-function editLandscapeFixture(x,y,r){
+
+function editLandscapeFixtureBlocks(x,y,r){
+	//naively just do all of them
+	for (bb in landscapeBlocks){
+		var thisBlock = landscapeBlocks[bb];
+		editLandscapeFixture(thisBlock,x,y,r);
+	}
+}
+
+function editLandscapeFixture(body,x,y,r){
 	//temporary test - make a fixed edit to landscape
 	cpr = new ClipperLib.Clipper();
 	
-	cpr.AddPaths(landscapeBody.clippablePath, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
+	cpr.AddPaths(body.clippablePath, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
 
 	//var cutPath = [{X:x-r,Y:y-r},{X:x-r,Y:y+r},{X:x+r,Y:y+r},{X:x+r,Y:y-r}]; //square
 	var cutPath=[];	//circle. todo precalculate
@@ -802,13 +826,13 @@ function editLandscapeFixture(x,y,r){
 	
 	cpr.AddPath(cutPath, ClipperLib.PolyType.ptClip, true);
 
-	var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, landscapeBody.clippablePath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+	var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, body.clippablePath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
 
 	//custom clean function - only remove a point if both the previous and next points are within a range limit
 	//currently inefficient
 	var resultPath=[]; //possibly faster to edit existing path
 	rangeLimitSq = 120;
-	var paths = landscapeBody.clippablePath;
+	var paths = body.clippablePath;
 	for (pp in paths){
 		var thisResultPath=[];
 		var thisPath = paths[pp];
@@ -832,22 +856,12 @@ function editLandscapeFixture(x,y,r){
 			console.log("***************************** too short path (" + thisResultPath.length + ")*********************");
 		}
 	}
-	landscapeBody.clippablePath = resultPath;
+	body.clippablePath = resultPath;
 	
 	landscapeUpdateScheduled=true;
-
-	/*
-	//print info about the landscape
-	console.log("size of landscape array: " + landscapeBody.clippablePath.length);
-	var totalEdges=0;
-	for (var ii in landscapeBody.clippablePath){
-		totalEdges += landscapeBody.clippablePath[ii].length;
-	}
-	console.log("num edges: " + totalEdges);
-	*/
 }
 
-function chopIntoGrid(inputPathArr){
+function chopIntoGrid(landsPath){
 	//input is a set of paths - eg a shape with a hole is 2 paths
 	//want to chop it up sensibly. 
 	
@@ -861,21 +875,20 @@ function chopIntoGrid(inputPathArr){
 
 	//print out information about initial landscape (loops, points)
 	
-	var landsPath = landscapeBody.clippablePath;
 	printPathsInfo(landsPath);
 	
 	//get bounding box of landscape.
 	var bounds = ClipperLib.Clipper.GetBounds(landsPath);
 	var xstep = (bounds.right-bounds.left)/8;
 	var ystep = (bounds.bottom-bounds.top)/8;
-	
+	var gap=5;	//for illustration. TODO remove
 	//chop each block out. TODO make this faster by recursive binary chopping
 	for (var ii=0;ii<8;ii++){
 		for (var jj=0;jj<8;jj++){
-			var left = bounds.left + ii*xstep;
-			var right = left+xstep;
-			var top = bounds.top + jj*ystep;
-			var bottom = top + ystep;
+			var left = bounds.left + ii*xstep + gap;
+			var right = left+xstep - gap;
+			var top = bounds.top + jj*ystep + gap;
+			var bottom = top + ystep - gap;
 			var clipPath = [{X:left, Y:top}, {X:left, Y:bottom}, {X:right, Y:bottom}, {X:right, Y:top}];
 			var resultPath=[];
 			
