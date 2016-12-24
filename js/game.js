@@ -14,6 +14,7 @@ var maxUpdatesPerFrame = 5;
 var playerBody;
 var thrustForce=15;
 var willFireGun=false;
+var autofireCountdown=0;
 
 var destroy_list = [];
 
@@ -377,6 +378,12 @@ function update(timeNow) {
 	   if (willFireGun){
 		   dropBomb();
 		   willFireGun=false;
+	   }
+	   if (autofireCountdown>0){
+		   autofireCountdown--;
+	   } else if (keyThing.bombKey()){
+		   autofireCountdown=2;
+		   dropBomb();
 	   }
 	   
 	   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
