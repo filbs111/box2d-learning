@@ -20,8 +20,10 @@ var destroy_list = [];
 
 var floatingPlatform;
 
+var landscapeBodyDef;
 var landscapeBlocks=[];
 var scheduledBlocksToUpdate=[];
+var scheduledCopiedBlocksToPurge=[];
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
@@ -173,7 +175,7 @@ function init(){
 	   //will render using canvas (initially) as a polygon
 	   //object will be destructible using clipper.js
 	   
-	   var landscapeBodyDef = new b2BodyDef;
+	   landscapeBodyDef = new b2BodyDef;
 	   landscapeBodyDef.type = b2Body.b2_staticBody;
 	   landscapeBodyDef.position.x = 0;
        landscapeBodyDef.position.y =0;
@@ -212,8 +214,9 @@ function init(){
 			var thisBody = world.CreateBody(landscapeBodyDef);
 			thisBody.clippablePath = thisGridInfo.paths;
 			thisBody.bounds = thisGridInfo.bounds;
-			updateLandscapeFixtures(thisBody);
-			landscapeBlocks.push(thisBody);
+			var returnedBody=updateLandscapeFixtures(thisBody);
+			landscapeBlocks.push(returnedBody);
+			world.DestroyBody(thisBody);	//TODO make this less clunky, if box2d issue workaround works
 	   }
 	   	   
    	   //add an ellipse, to check the limit on vertices in a polygon shape. seems no real limit here - got up to 2048 ok!
@@ -338,6 +341,7 @@ function init(){
 	   copyPositions();
 }; // init()
 
+var update_in_progress=false;
 function update(timeNow) {
    
    //var timeNow = (new Date()).getTime();
@@ -403,6 +407,10 @@ function update(timeNow) {
    
    function iterateMechanics(){
 	   
+	 if(update_in_progress==true){alert("WTF? 2 mechanics iterations happening at the same time!!!");}
+   	   update_in_progress=true;
+
+	   
 	   for (var e in explosions){
 		  explosions[e].iterate();
 	   }
@@ -417,18 +425,41 @@ function update(timeNow) {
 		  }
 	   }
 	   
-	   for (bb in scheduledBlocksToUpdate){
-		 var thisBlock = scheduledBlocksToUpdate[bb];
-		 updateLandscapeFixtures(thisBlock);
-	   }
-	   scheduledBlocksToUpdate=[];
-	   
 	   // Destroy all bodies in destroy_list
 	  for (var i in destroy_list) {
 		world.DestroyBody(destroy_list[i]);
 	  }
 	  // Reset the array
 	  destroy_list.length = 0;
+	  
+	  //if (scheduledCopiedBlocksToPurge.length>0){
+		//  console.log("there are " + scheduledCopiedBlocksToPurge.length + "blocks to purge");
+		//  console.log("=====");
+	  //}
+	  for (bb in scheduledCopiedBlocksToPurge){
+		  var thisBlock = scheduledCopiedBlocksToPurge[bb];
+		  var outcome = world.DestroyBody(thisBlock);
+		  if (outcome){alert(outcome);}
+		  //console.log("destroyed body");
+	  }
+	  //if (scheduledBlocksToUpdate.length>0){
+	//	  console.log("there are " + scheduledBlocksToUpdate.length + "blocks to update");
+	  //}
+	  var updatedBlocks=0
+	  for (bb in scheduledBlocksToUpdate){
+		 var thisBlock = scheduledBlocksToUpdate[bb];
+		 var returnedBlock = updateLandscapeFixtures(thisBlock);
+		 if (returnedBlock!=thisBlock){
+			 landscapeBlocks[landscapeBlocks.indexOf(thisBlock)]=returnedBlock;
+		 }
+		 updatedBlocks++;
+	   }
+	   //console.log("landscapeBlocks arr is length " + landscapeBlocks.length);
+	   //if (scheduledBlocksToUpdate.length>0){
+		//  console.log(updatedBlocks + "blocks were updated");
+	   //}
+	   scheduledCopiedBlocksToPurge=scheduledBlocksToUpdate;
+	   scheduledBlocksToUpdate=[];
 	   
 	   world.Step(
 			 0.001*timeStep   //seconds
@@ -436,6 +467,7 @@ function update(timeNow) {
 		  ,  3       //position iterations
 	   );
 	   world.ClearForces();
+	   update_in_progress=false;
    }
 }; // update()
 
@@ -671,20 +703,28 @@ bombfixDef.shape = new b2CircleShape(
 		 );	  		 
    
 function dropBomb(){
-  var fireSpeed=25;	//0 for freefall bomb, +ve for forward firing
+  //var speeds = [{fwd:0,left:0}];	//bomb
+  var speeds = [{fwd:25,left:0}, {fwd:20,left:5}, {fwd:20,left:-5}];	//triple shot
+  
   var fwd = playerBody.GetTransform().R.col2;
+  var left = playerBody.GetTransform().R.col1;
   
   var playerPosition = playerBody.GetTransform().position;
   var playerVelocity = playerBody.GetLinearVelocity();
+  
   bombDef.position.x = playerPosition.x;
   bombDef.position.y = playerPosition.y;
-  bombDef.linearVelocity.x=playerVelocity.x + fireSpeed*fwd.x;
-  bombDef.linearVelocity.y=playerVelocity.y + fireSpeed*fwd.y;
   
-  var bombBody = world.CreateBody(bombDef);  
-  bombBody.CreateFixture(bombfixDef);
-  bC.AddBody(bombBody);
-  bombBody.countdown=100;
+  for (ss in speeds){
+	  var speed = speeds[ss];
+	  bombDef.linearVelocity.x=playerVelocity.x + speed.fwd*fwd.x + speed.left*left.x;
+	  bombDef.linearVelocity.y=playerVelocity.y + speed.fwd*fwd.y + speed.left*left.y;
+	  
+	  var bombBody = world.CreateBody(bombDef);  
+	  bombBody.CreateFixture(bombfixDef);
+	  bC.AddBody(bombBody);
+	  bombBody.countdown=100; 
+  }
 }
 
 function detonateBody(b){
@@ -752,14 +792,13 @@ function checkContactUnderPlayer(c){
 
 function updateLandscapeFixtures(body){
 	
-	//delete existing fixtures. 
-	//this will mean deleting and recreating many fixtures. TODO avoid this
-	var nextf;
-	for (var f = body.GetFixtureList(); f != null; f=nextf) {
-		nextf = f.GetNext();
-		body.DestroyFixture(f);
-	}
-	
+	//retain existing body (will purge next loop, hopefully working around what appears to be a box2d issue)
+	//make a new body with the new fixtures
+
+	var newBody = world.CreateBody(landscapeBodyDef);
+	newBody.clippablePath = body.clippablePath;
+	newBody.bounds = body.bounds;	//TODO recalculate this
+
 	var SCALE = 25;
 
 	var fixDef = new b2FixtureDef;
@@ -785,10 +824,11 @@ function updateLandscapeFixtures(body){
 			nextPos = new b2Vec2(thisLoop[jj].X / SCALE, thisLoop[jj].Y / SCALE);
 			fixDef.shape.SetAsEdge(currentPos, nextPos);
 			//console.log("making an edge from (" + currentPos.x + ", " + currentPos.y + ") to (" + nextPos.x + ", " + nextPos.y + ")" );
-			body.CreateFixture(fixDef);
+			newBody.CreateFixture(fixDef);
 			currentPos = nextPos;
 		}
 	}
+	return newBody;
 }
 
 var cpr;
@@ -806,11 +846,11 @@ function editLandscapeFixture(body,x,y,r){
 	
 	//confirm is within bounds of block
 	//TODO use the grid systme directly
+	
 	var bounds = body.bounds;
 	if (x-r>bounds.right || y-r>bounds.bottom || x+r<bounds.left || y+r<bounds.top){
 		return;
 	}
-	
 	
 	//temporary test - make a fixed edit to landscape
 	cpr = new ClipperLib.Clipper();
@@ -858,7 +898,7 @@ function editLandscapeFixture(body,x,y,r){
 	}
 	body.clippablePath = resultPath;
 	
-	scheduledBlocksToUpdate.push(body);
+	if (scheduledBlocksToUpdate.indexOf(body)==-1){scheduledBlocksToUpdate.push(body);}
 }
 
 function chopIntoGrid(landsPath){
