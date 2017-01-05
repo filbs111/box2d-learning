@@ -24,7 +24,6 @@ var landscapeBodyDef;
 var landscapeBlocks=[];
 var scheduledBlocksToUpdate=[];
 var scheduledCopiedBlocksToPurge=[];
-var objTryingToDelete;
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
@@ -433,13 +432,19 @@ function update(timeNow) {
 	  // Reset the array
 	  destroy_list.length = 0;
 	  
+	  //if (scheduledCopiedBlocksToPurge.length>0){
+		//  console.log("there are " + scheduledCopiedBlocksToPurge.length + "blocks to purge");
+		//  console.log("=====");
+	  //}
 	  for (bb in scheduledCopiedBlocksToPurge){
 		  var thisBlock = scheduledCopiedBlocksToPurge[bb];
 		  var outcome = world.DestroyBody(thisBlock);
 		  if (outcome){alert(outcome);}
 		  //console.log("destroyed body");
 	  }
-	  
+	  //if (scheduledBlocksToUpdate.length>0){
+	//	  console.log("there are " + scheduledBlocksToUpdate.length + "blocks to update");
+	  //}
 	  var updatedBlocks=0
 	  for (bb in scheduledBlocksToUpdate){
 		 var thisBlock = scheduledBlocksToUpdate[bb];
@@ -449,7 +454,10 @@ function update(timeNow) {
 		 }
 		 updatedBlocks++;
 	   }
-
+	   //console.log("landscapeBlocks arr is length " + landscapeBlocks.length);
+	   //if (scheduledBlocksToUpdate.length>0){
+		//  console.log(updatedBlocks + "blocks were updated");
+	   //}
 	   scheduledCopiedBlocksToPurge=scheduledBlocksToUpdate;
 	   scheduledBlocksToUpdate=[];
 	   
@@ -562,14 +570,7 @@ function draw_world(world, context) {
 				context.closePath();
 			}
 		}
-		
-		if (b.markedForPurge){
-			context.fillStyle="rgba(250, 50, 50, 0.75)";
-		}else{
-			context.fillStyle="rgba(150, 150, 125, 0.75)";
-		}
-		
-		//context.fillStyle="rgba(150, 150, 125, 0.75)";
+		context.fillStyle="rgba(150, 150, 125, 0.75)";
 		context.fill();
 		//context.stroke();
 		
@@ -794,10 +795,7 @@ function updateLandscapeFixtures(body){
 	//retain existing body (will purge next loop, hopefully working around what appears to be a box2d issue)
 	//make a new body with the new fixtures
 
-	body.markedForPurge=true;	//for debugging
-	
 	var newBody = world.CreateBody(landscapeBodyDef);
-	
 	newBody.clippablePath = body.clippablePath;
 	newBody.bounds = body.bounds;	//TODO recalculate this
 
@@ -809,12 +807,12 @@ function updateLandscapeFixtures(body){
     fixDef.restitution = 0.2; 
 	fixDef.shape = new b2PolygonShape;
 	
-	var cPath = newBody.clippablePath;
+	var cPath = body.clippablePath;
 	var numLoops = cPath.length;
 	var numPoints;
 	if (numLoops==0){
 		console.log("no loops in clippable path. this is unexpected");
-		return newBody;
+		return;
 	}
 	var thisLoop, currentPos, nextPos;
 	for (var ii=0;ii<numLoops;ii++){
