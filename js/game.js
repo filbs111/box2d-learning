@@ -22,6 +22,7 @@ var floatingPlatform;
 
 var landscapeBlocks=[];
 var scheduledBlocksToUpdate=[];
+var scheduledBlocksToPurge=[];
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
@@ -417,10 +418,20 @@ function update(timeNow) {
 		  }
 	   }
 	   
+	   for (bb in scheduledBlocksToPurge){
+		 var thisBlock = scheduledBlocksToPurge[bb];
+		 purgeLandscapeFixtures(thisBlock);
+		 //get rid of all fixtures added to purge list before last iteration
+	   }
 	   for (bb in scheduledBlocksToUpdate){
 		 var thisBlock = scheduledBlocksToUpdate[bb];
 		 updateLandscapeFixtures(thisBlock);
+		 //for altered blocks, compare existing fixture list with new fixtures from new clip path
+		 //where match, do nothing
+		 //where in existing list, but not new, add to purge list (want to keep fixture around for a frame to avoid bugginess)
+		 //where in new path, but not existing, add new fixture
 	   }
+	   scheduledBlocksToPurge = scheduledBlocksToUpdate;
 	   scheduledBlocksToUpdate=[];
 	   
 	   // Destroy all bodies in destroy_list
@@ -750,23 +761,33 @@ function checkContactUnderPlayer(c){
 	return true;
 }
 
-function updateLandscapeFixtures(body){
-	
-	//delete existing fixtures. 
-	//this will mean deleting and recreating many fixtures. TODO avoid this
-	var nextf;
-	for (var f = body.GetFixtureList(); f != null; f=nextf) {
-		nextf = f.GetNext();
+function purgeLandscapeFixtures(body){	
+	var newPurgeList =[];
+	for (var f = body.GetFixtureList(); f != null; f = f.GetNext()) {
+		if (f.purgePls){
+			newPurgeList.push(f)
+		}
+	}
+	for (var ii in newPurgeList){
+		var f = newPurgeList[ii];
 		body.DestroyFixture(f);
 	}
+}
+
+function updateLandscapeFixtures(body){
 	
 	var SCALE = 25;
-
 	var fixDef = new b2FixtureDef;
     fixDef.density = 1.0;
     fixDef.friction = 0.5;
     fixDef.restitution = 0.2; 
 	fixDef.shape = new b2PolygonShape;
+	
+	var oldFixtures= body.existingFixtures || {};	//TODO remove || {} by creating this elsewhere
+	
+	console.log("old fixtures: " + Object.keys(oldFixtures).length);
+	
+	var newFixtureList={};	//all output features not on purge list
 	
 	var cPath = body.clippablePath;
 	var numLoops = cPath.length;
@@ -780,15 +801,43 @@ function updateLandscapeFixtures(body){
 		thisLoop = cPath[ii];
 		numPoints = thisLoop.length;
 		//console.log("a loop with num points =" + numPoints);
-		currentPos = new b2Vec2(thisLoop[numPoints-1].X / SCALE, thisLoop[numPoints-1].Y / SCALE);
+		currentPos = thisLoop[numPoints-1];
 		for (var jj=0;jj<numPoints;jj++){
-			nextPos = new b2Vec2(thisLoop[jj].X / SCALE, thisLoop[jj].Y / SCALE);
-			fixDef.shape.SetAsEdge(currentPos, nextPos);
-			//console.log("making an edge from (" + currentPos.x + ", " + currentPos.y + ") to (" + nextPos.x + ", " + nextPos.y + ")" );
-			body.CreateFixture(fixDef);
+			nextPos = thisLoop[jj];
+			newFixtureList[JSON.stringify([currentPos.X, currentPos.Y, nextPos.X, nextPos.Y])] = true;
 			currentPos = nextPos;
 		}
 	}
+	
+	for (var fix in oldFixtures){
+		if (!newFixtureList[fix]){
+			oldFixtures[fix].purgePls=true;
+		}
+	}
+
+	var toMakeList=[];
+	for (var fix in newFixtureList){
+		if (oldFixtures[fix]){
+			newFixtureList[fix]=oldFixtures[fix];
+			//console.log("already exists. reusing...");
+		}else{
+			toMakeList.push(fix);
+		}
+	}
+	
+	//var createdCount=0;
+	var parsedFix;
+	var fix;
+	for (var ii in toMakeList){
+		fix=toMakeList[ii];
+		parsedFix = JSON.parse(fix);
+		fixDef.shape.SetAsEdge(new b2Vec2(parsedFix[0] / SCALE, parsedFix[1] / SCALE), new b2Vec2(parsedFix[2] / SCALE, parsedFix[3] / SCALE));
+		newFixtureList[fix]=body.CreateFixture(fixDef);
+	//	createdCount++;
+	}
+	//if (createdCount!=0){console.log("created " + createdCount + " fixtures");}
+	
+	body.existingFixtures = newFixtureList;
 }
 
 var cpr;
