@@ -682,20 +682,28 @@ bombfixDef.shape = new b2CircleShape(
 		 );	  		 
    
 function dropBomb(){
-  var fireSpeed=25;	//0 for freefall bomb, +ve for forward firing
+  //var speeds = [{fwd:0,left:0}];	//bomb
+  var speeds = [{fwd:25,left:0}, {fwd:20,left:5}, {fwd:20,left:-5}];	//triple shot
+  
   var fwd = playerBody.GetTransform().R.col2;
+  var left = playerBody.GetTransform().R.col1;
   
   var playerPosition = playerBody.GetTransform().position;
   var playerVelocity = playerBody.GetLinearVelocity();
+  
   bombDef.position.x = playerPosition.x;
   bombDef.position.y = playerPosition.y;
-  bombDef.linearVelocity.x=playerVelocity.x + fireSpeed*fwd.x;
-  bombDef.linearVelocity.y=playerVelocity.y + fireSpeed*fwd.y;
   
-  var bombBody = world.CreateBody(bombDef);  
-  bombBody.CreateFixture(bombfixDef);
-  bC.AddBody(bombBody);
-  bombBody.countdown=100;
+  for (ss in speeds){
+	  var speed = speeds[ss];
+	  bombDef.linearVelocity.x=playerVelocity.x + speed.fwd*fwd.x + speed.left*left.x;
+	  bombDef.linearVelocity.y=playerVelocity.y + speed.fwd*fwd.y + speed.left*left.y;
+	  
+	  var bombBody = world.CreateBody(bombDef);  
+	  bombBody.CreateFixture(bombfixDef);
+	  bC.AddBody(bombBody);
+	  bombBody.countdown=100; 
+  }
 }
 
 function detonateBody(b){
