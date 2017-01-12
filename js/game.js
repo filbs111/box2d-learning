@@ -412,7 +412,7 @@ function update(timeNow) {
 	      if (b.countdown){
 			 b.countdown--;
 			 if (b.countdown==0){
-				console.log("destroying body");
+				//console.log("destroying body");
 				detonateBody(b);
 			 }
 		  }
@@ -786,7 +786,10 @@ function purgeLandscapeFixtures(body){
 	var newPurgeList =[];
 	for (var f = body.GetFixtureList(); f != null; f = f.GetNext()) {
 		if (f.purgePls){
-			newPurgeList.push(f)
+			f.purgePls--;
+			if (f.purgePls<=0){
+				newPurgeList.push(f);
+			}
 		}
 	}
 	for (var ii in newPurgeList){
@@ -806,7 +809,7 @@ function updateLandscapeFixtures(body){
 	
 	var oldFixtures= body.existingFixtures || {};	//TODO remove || {} by creating this elsewhere
 	
-	console.log("old fixtures: " + Object.keys(oldFixtures).length);
+	//console.log("old fixtures: " + Object.keys(oldFixtures).length);
 	
 	var newFixtureList={};	//all output features not on purge list
 	
@@ -832,7 +835,7 @@ function updateLandscapeFixtures(body){
 	
 	for (var fix in oldFixtures){
 		if (!newFixtureList[fix]){
-			oldFixtures[fix].purgePls=true;
+			oldFixtures[fix].purgePls=2;
 		}
 	}
 
