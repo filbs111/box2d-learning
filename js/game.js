@@ -16,7 +16,7 @@ var thrustForce=15;
 var willFireGun=false;
 var autofireCountdown=0;
 
-var destroy_list = [];
+//var destroy_list = [];
 
 var floatingPlatform;
 
@@ -287,7 +287,7 @@ function init(){
 		fixDef.shape.SetAsArray(vecpoints, vecpoints.length);
 		fixDef.filter.categoryBits=2;
 		fixDef.filter.maskBits=3;	//collide with 1,2
-		bodyDef.position.x = -200;
+		bodyDef.position.x = -500;
 		bodyDef.position.y = 0;
 		playerBody = world.CreateBody(bodyDef);
 		playerBody.CreateFixture(fixDef);
@@ -434,12 +434,20 @@ function update(timeNow) {
 	   scheduledBlocksToPurge = scheduledBlocksToUpdate;
 	   scheduledBlocksToUpdate=[];
 	   
-	   // Destroy all bodies in destroy_list
+	   //create destroy list here because don't try box2d not to mess around with references to bodies (or maybe i'm sticking things on destroy list twice...)
+	   destroy_list = [];
+	   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+	    if (b.shouldDestroy){
+			destroy_list.push(b);
+		}
+	   }
+	   
+	   //Destroy all bodies in destroy_list
 	  for (var i in destroy_list) {
 		world.DestroyBody(destroy_list[i]);
 	  }
 	  // Reset the array
-	  destroy_list.length = 0;
+	  //destroy_list.length = 0;
 	   
 	   world.Step(
 			 0.001*timeStep   //seconds
@@ -683,7 +691,9 @@ bombfixDef.shape = new b2CircleShape(
    
 function dropBomb(){
   //var speeds = [{fwd:0,left:0}];	//bomb
-  var speeds = [{fwd:25,left:0}, {fwd:20,left:5}, {fwd:20,left:-5}];	//triple shot
+  var speeds = [{fwd:35,left:0}, {fwd:30,left:5}, {fwd:30,left:-5}];	//triple shot
+  //var speeds = [{fwd:25,left:0}, {fwd:20,left:5}, {fwd:20,left:-5}];	//triple shot
+  //var speeds = [{fwd:15,left:0}, {fwd:10,left:5}, {fwd:10,left:-5}];	//triple shot
   
   var fwd = playerBody.GetTransform().R.col2;
   var left = playerBody.GetTransform().R.col1;
@@ -703,6 +713,8 @@ function dropBomb(){
 	  bombBody.CreateFixture(bombfixDef);
 	  bC.AddBody(bombBody);
 	  bombBody.countdown=100; 
+	  
+	  //bombBody.SetBullet(true);
   }
 }
 
@@ -710,7 +722,8 @@ function detonateBody(b){
 	var bodyPos = b.GetTransform().position;
 	new Explosion(bodyPos.x, bodyPos.y , 0,0, 1,0.5 );
 	createBlast(bodyPos);
-	destroy_list.push(b);
+	//destroy_list.push(b);
+	b.shouldDestroy=true;
 	editLandscapeFixtureBlocks(bodyPos.x *25,bodyPos.y *25,20);
 	//console.log("destroying bomb at " + bodyPos.x + ", " + bodyPos.y);
 }
@@ -887,6 +900,7 @@ function editLandscapeFixture(body,x,y,r){
 
 	//custom clean function - only remove a point if both the previous and next points are within a range limit
 	//currently inefficient
+	
 	var resultPath=[]; //possibly faster to edit existing path
 	rangeLimitSq = 120;
 	var paths = body.clippablePath;
@@ -915,7 +929,12 @@ function editLandscapeFixture(body,x,y,r){
 	}
 	body.clippablePath = resultPath;
 	
-	scheduledBlocksToUpdate.push(body);
+	
+	if (scheduledBlocksToUpdate.indexOf(body)==-1){
+		scheduledBlocksToUpdate.push(body);
+	//}else{
+	//	console.log("tried to push array to update twice. index : " + scheduledBlocksToUpdate.indexOf(body) );
+	}
 }
 
 function chopIntoGrid(landsPath){
