@@ -114,7 +114,7 @@ function init(){
           ,  true                 //allow sleep
        );
        
-       var SCALE = 30;
+       var SCALE = 25;
      
 	 //
 	// Create a buoyancy controller
@@ -149,6 +149,7 @@ function init(){
 						 [0,2000,2000,20, b2Body.b2_staticBody],
 						 
 						 [1000,1000,800,100, b2Body.b2_dynamicBody, 1],
+						 [-9900,500,800,100, b2Body.b2_dynamicBody, 1],
 	   ];
 	   var currentBox, halfwidth, halfheight, bodyType, thisBody;
 	   
@@ -201,6 +202,13 @@ function init(){
 				landscapeBodyClippablePath.push(thisCircle);
 			}
 		}
+		//chop out holes for the levelboxes. initially hard code just one
+		var levBoxCoords=[];
+		levBoxCoords.push({X:-9900/5,Y:500/5});
+		levBoxCoords.push({X:-9900/5,Y:500/5+100/5});
+		levBoxCoords.push({X:-9900/5+800/5,Y:500/5+100/5});
+		levBoxCoords.push({X:-9900/5+800/5,Y:500/5});
+		landscapeBodyClippablePath.push(levBoxCoords);
 		
 	   ClipperLib.JS.ScaleUpPaths(landscapeBodyClippablePath, 5);
 		
@@ -738,7 +746,7 @@ function detonateBody(b){
 	createBlast(bodyPos);
 	//destroy_list.push(b);
 	b.shouldDestroy=true;
-	editLandscapeFixtureBlocks(bodyPos.x *25,bodyPos.y *25,20);
+	editLandscapeFixtureBlocks(bodyPos.x *25,bodyPos.y *25,200);
 	//console.log("destroying bomb at " + bodyPos.x + ", " + bodyPos.y);
 }
 
