@@ -22,7 +22,7 @@ var floatingPlatform;
 
 var landscapeBlocks=[];
 var scheduledBlocksToUpdate=[];
-var scheduledBlocksToPurge=[[],[],[]];
+var scheduledBlocksToPurge=[[],[]];
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
@@ -430,25 +430,10 @@ function update(timeNow) {
 				purgeLandscapeFixtures(thisBlock);
 				//get rid of all fixtures added to purge list before last iteration
 			 }else{
-				 console.log("skipping...");
+			//	 console.log("skipping...");
 			 }
 		   }
 	   }
-	   if (handledBlockList.length>0){
-		//	console.log("handled blocks? " + handledBlockList.length ); 
-		}
-	   //slow check to see whether anything 
-	   /*
-	   for (var bb in scheduledBlocksToPurge[2]){
-		   var thisBlock = scheduledBlocksToPurge[2][bb];
-		   for (var f = thisBlock.GetFixtureList(); f != null; f = f.GetNext()) {
-				if (f.purgePls && !f.wasPurged){
-					//alert("this should not generally happen!! f.purgePls = " + f.purgePls);	//shouldn't happen in event just dropping single bombs
-					console.log("this not generally happe!! f.purgePls = " + f.purgePls);	
-				}
-			}
-	   } 
-	   */
 	   
 	   for (var bb in scheduledBlocksToUpdate){
 		 var thisBlock = scheduledBlocksToUpdate[bb];
@@ -459,9 +444,6 @@ function update(timeNow) {
 		 //where in new path, but not existing, add new fixture
 	   }
 	   
-	   //console.log("list lengths : " + scheduledBlocksToUpdate.length + ", " + scheduledBlocksToPurge[0].length + ", " + scheduledBlocksToPurge[1].length);
-	   
-	   scheduledBlocksToPurge[2] = scheduledBlocksToPurge[1];	//something to check for bug - there SHOULD be nothing in this list with purgePls defined
 	   scheduledBlocksToPurge[1] = scheduledBlocksToPurge[0];
 	   scheduledBlocksToPurge[0] = scheduledBlocksToUpdate;
 	   scheduledBlocksToUpdate=[];
