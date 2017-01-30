@@ -559,6 +559,7 @@ function draw_world(world, context) {
 		var numPoints;
 		if (numLoops==0){
 			console.log("no loops in clippable path. this is unexpected");
+			continue;
 		} else {
 			
 			//confirm is within bounds of screen.
@@ -713,8 +714,8 @@ bombfixDef.shape = new b2CircleShape(
 		 );	  		 
    
 function dropBomb(){
-  //var speeds = [{fwd:0,left:0}];	//bomb
-  var speeds = [{fwd:35,left:0}, {fwd:30,left:5}, {fwd:30,left:-5}];	//triple shot
+  var speeds = [{fwd:0,left:0}];	//bomb
+  //var speeds = [{fwd:35,left:0}, {fwd:30,left:5}, {fwd:30,left:-5}];	//triple shot
   //var speeds = [{fwd:25,left:0}, {fwd:20,left:5}, {fwd:20,left:-5}];	//triple shot
   //var speeds = [{fwd:15,left:0}, {fwd:10,left:5}, {fwd:10,left:-5}];	//triple shot
   
