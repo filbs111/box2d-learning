@@ -203,6 +203,7 @@ function init(){
 			}
 		}
 		//chop out holes for the levelboxes. initially hard code just one
+		//[-9900,500,800,100]
 		var levBoxCoords=[];
 		levBoxCoords.push({X:-9900/5,Y:500/5});
 		levBoxCoords.push({X:-9900/5,Y:500/5+100/5});
