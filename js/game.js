@@ -22,7 +22,7 @@ var floatingPlatform;
 
 var landscapeBlocks=[];
 var scheduledBlocksToUpdate=[];
-var scheduledBlocksToPurge=[];
+var scheduledBlocksToPurge=[[],[],[]];
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
@@ -418,12 +418,39 @@ function update(timeNow) {
 		  }
 	   }
 	   
-	   for (bb in scheduledBlocksToPurge){
-		 var thisBlock = scheduledBlocksToPurge[bb];
-		 purgeLandscapeFixtures(thisBlock);
-		 //get rid of all fixtures added to purge list before last iteration
+	   //generate an array containing elements in all scheduledBlocksToPurge[n] arrays.
+	   //not the most efficient way to do things but shouldnt' really matter
+	   var handledBlockList=[];
+	   for (var listno=0;listno<2;listno++){
+			var thisList = scheduledBlocksToPurge[listno];
+		   for (var bb in thisList){
+			 var thisBlock = thisList[bb];
+			 if (handledBlockList.indexOf(thisBlock)==-1){
+				handledBlockList.push(thisBlock);
+				purgeLandscapeFixtures(thisBlock);
+				//get rid of all fixtures added to purge list before last iteration
+			 }else{
+				 console.log("skipping...");
+			 }
+		   }
 	   }
-	   for (bb in scheduledBlocksToUpdate){
+	   if (handledBlockList.length>0){
+		//	console.log("handled blocks? " + handledBlockList.length ); 
+		}
+	   //slow check to see whether anything 
+	   /*
+	   for (var bb in scheduledBlocksToPurge[2]){
+		   var thisBlock = scheduledBlocksToPurge[2][bb];
+		   for (var f = thisBlock.GetFixtureList(); f != null; f = f.GetNext()) {
+				if (f.purgePls && !f.wasPurged){
+					//alert("this should not generally happen!! f.purgePls = " + f.purgePls);	//shouldn't happen in event just dropping single bombs
+					console.log("this not generally happe!! f.purgePls = " + f.purgePls);	
+				}
+			}
+	   } 
+	   */
+	   
+	   for (var bb in scheduledBlocksToUpdate){
 		 var thisBlock = scheduledBlocksToUpdate[bb];
 		 updateLandscapeFixtures(thisBlock);
 		 //for altered blocks, compare existing fixture list with new fixtures from new clip path
@@ -431,7 +458,12 @@ function update(timeNow) {
 		 //where in existing list, but not new, add to purge list (want to keep fixture around for a frame to avoid bugginess)
 		 //where in new path, but not existing, add new fixture
 	   }
-	   scheduledBlocksToPurge = scheduledBlocksToUpdate;
+	   
+	   //console.log("list lengths : " + scheduledBlocksToUpdate.length + ", " + scheduledBlocksToPurge[0].length + ", " + scheduledBlocksToPurge[1].length);
+	   
+	   scheduledBlocksToPurge[2] = scheduledBlocksToPurge[1];	//something to check for bug - there SHOULD be nothing in this list with purgePls defined
+	   scheduledBlocksToPurge[1] = scheduledBlocksToPurge[0];
+	   scheduledBlocksToPurge[0] = scheduledBlocksToUpdate;
 	   scheduledBlocksToUpdate=[];
 	   
 	   //create destroy list here because don't try box2d not to mess around with references to bodies (or maybe i'm sticking things on destroy list twice...)
@@ -788,7 +820,12 @@ function purgeLandscapeFixtures(body){
 		if (f.purgePls){
 			f.purgePls--;
 			if (f.purgePls<=0){
-				newPurgeList.push(f);
+				if (f.wasPurged){
+					alert("double delete attempt!!");
+				}else{
+					newPurgeList.push(f);
+					f.wasPurged = true;
+				}
 			}
 		}
 	}
@@ -828,7 +865,9 @@ function updateLandscapeFixtures(body){
 		currentPos = thisLoop[numPoints-1];
 		for (var jj=0;jj<numPoints;jj++){
 			nextPos = thisLoop[jj];
-			newFixtureList[JSON.stringify([currentPos.X, currentPos.Y, nextPos.X, nextPos.Y])] = true;
+			var stringKey = JSON.stringify([currentPos.X, currentPos.Y, nextPos.X, nextPos.Y]);
+			if (newFixtureList[stringKey]){alert("assumption false!!!!");}
+			newFixtureList[stringKey] = true;
 			currentPos = nextPos;
 		}
 	}
