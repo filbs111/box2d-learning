@@ -436,8 +436,10 @@ function update(timeNow) {
 			 var thisBlock = thisList[bb];
 			 if (handledBlockList.indexOf(thisBlock)==-1){
 				handledBlockList.push(thisBlock);
-				purgeLandscapeFixtures(thisBlock);
-				//get rid of all fixtures added to purge list before last iteration
+				var result = purgeLandscapeFixtures(thisBlock);
+				if (result==-1){
+					landscapeBlocks.splice(landscapeBlocks.indexOf(thisBlock),1);	//remove from array of landscape blocks
+				}
 			 }else{
 			//	 console.log("skipping...");
 			 }
@@ -810,7 +812,7 @@ function checkContactUnderPlayer(c){
 function purgeLandscapeFixtures(body){	
 	if (body.shouldBeDestroyed){
 		console.log("this body should have been destroyed");	//possibly should ensure don't call function for "destroyed" bodies
-		return -1;												//maybe box2d doesn't actually destroy the object, just removes it from the world
+		return -2;												//maybe box2d doesn't actually destroy the object, just removes it from the world
 	}	
 	var newPurgeList =[];
 	for (var f = body.GetFixtureList(); f != null; f = f.GetNext()) {
@@ -835,6 +837,7 @@ function purgeLandscapeFixtures(body){
 		console.log("all fixtures gone. destroying body.");
 		body.shouldBeDestroyed=true;
 		world.DestroyBody(body);
+		return -1;
 	}
 }
 
