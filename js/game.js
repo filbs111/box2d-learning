@@ -846,8 +846,8 @@ function updateLandscapeFixtures(body){
 	var numLoops = cPath.length;
 	var numPoints;
 	if (numLoops==0){
-		console.log("no loops in clippable path. this is unexpected");
-		return;
+		console.log("no loops in clippable path. this is unexpected 111");
+	//	return;
 	}
 	var thisLoop, currentPos, nextPos;
 	for (var ii=0;ii<numLoops;ii++){
