@@ -361,7 +361,7 @@ function update(timeNow) {
 	   updatesRequired = maxUpdatesPerFrame;
 	   currentTime = timeNow;
 	   remainderFraction=0;
-	   console.log("!");
+	   //console.log("!");
    }else{
 	   currentTime+=timeStep*updatesRequired;
    }
@@ -714,7 +714,8 @@ bombfixDef.shape = new b2CircleShape(
 		 );	  		 
    
 function dropBomb(){
-  var speeds = [{fwd:0,left:0}];	//bomb
+  //var speeds = [{fwd:0,left:0}];	//bomb
+  var speeds = [{fwd:20,left:0}];
   //var speeds = [{fwd:35,left:0}, {fwd:30,left:5}, {fwd:30,left:-5}];	//triple shot
   //var speeds = [{fwd:25,left:0}, {fwd:20,left:5}, {fwd:20,left:-5}];	//triple shot
   //var speeds = [{fwd:15,left:0}, {fwd:10,left:5}, {fwd:10,left:-5}];	//triple shot
@@ -744,11 +745,11 @@ function dropBomb(){
 
 function detonateBody(b){
 	var bodyPos = b.GetTransform().position;
-	new Explosion(bodyPos.x, bodyPos.y , 0,0, 1,0.5 );
+	new Explosion(bodyPos.x, bodyPos.y , 0,0, 2,0.5 );
 	createBlast(bodyPos);
 	//destroy_list.push(b);
 	b.shouldDestroy=true;
-	editLandscapeFixtureBlocks(bodyPos.x *25,bodyPos.y *25,200);
+	editLandscapeFixtureBlocks(bodyPos.x *25,bodyPos.y *25,500);
 	//console.log("destroying bomb at " + bodyPos.x + ", " + bodyPos.y);
 }
 
@@ -807,6 +808,10 @@ function checkContactUnderPlayer(c){
 }
 
 function purgeLandscapeFixtures(body){	
+	if (body.shouldBeDestroyed){
+		console.log("this body should have been destroyed");	//possibly should ensure don't call function for "destroyed" bodies
+		return -1;												//maybe box2d doesn't actually destroy the object, just removes it from the world
+	}	
 	var newPurgeList =[];
 	for (var f = body.GetFixtureList(); f != null; f = f.GetNext()) {
 		if (f.purgePls){
@@ -824,6 +829,12 @@ function purgeLandscapeFixtures(body){
 	for (var ii in newPurgeList){
 		var f = newPurgeList[ii];
 		body.DestroyFixture(f);
+	}
+	//destroy the body if all fixtures are gone
+	if (body.GetFixtureList()==null){
+		console.log("all fixtures gone. destroying body.");
+		body.shouldBeDestroyed=true;
+		world.DestroyBody(body);
 	}
 }
 
