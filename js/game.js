@@ -278,8 +278,8 @@ function init(){
                 Math.random() + 0.1 //radius
              );
           }
-          bodyDef.position.x = 10 + Math.random() * 20;
-          bodyDef.position.y = -20+Math.random() * 20;
+          bodyDef.position.x = -400 + Math.random() * 20;
+          bodyDef.position.y = -400+Math.random() * 20;
           world.CreateBody(bodyDef).CreateFixture(fixDef);
        }
 	   
@@ -509,8 +509,14 @@ var skipLandsClip=true;
 
 function draw_world(world, context) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
-  //context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle= "#AAFFFF";
+//  context.fillStyle= "#AAFFFF";
+  
+  var grd=ctx.createLinearGradient(0,0,0,canvas.height);
+grd.addColorStop(0,"magenta");
+grd.addColorStop(1,"orange");
+
+ctx.fillStyle=grd;
+  
   context.fillRect(0, 0, canvas.width, canvas.height);	//so "lighter" globalCompositeOperation has something to start from
   
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*playerBody.interpPos.x, 
@@ -583,7 +589,18 @@ function draw_world(world, context) {
 				context.closePath();
 			}
 		}
-		context.fillStyle="rgba(150, 150, 125, 0.75)";
+		context.fillStyle="rgba(150, 150, 125, 0.85)";
+		
+		
+		var grd=ctx.createLinearGradient(0,0,0,canvas.height);
+		grd.addColorStop(0,"yellow");
+		grd.addColorStop(1,"cyan");
+		//grd.addColorStop(0,"#aaa");
+		//grd.addColorStop(0.5,"#bbb");
+		//grd.addColorStop(0.6,"#777");
+		//grd.addColorStop(1,"#888");
+		context.fillStyle=grd;
+		
 		context.fill();
 		//context.stroke();
 		
@@ -612,7 +629,8 @@ function draw_world(world, context) {
   //var startWater = canvas.height/2; //Math.max(0,)
   var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+playerBody.interpPos.y));
   var endWater = canvas.height;
-  context.fillStyle="rgba(0, 150, 75, 0.5)";
+  //context.fillStyle="rgba(0, 150, 75, 0.5)";
+  context.fillStyle="rgba(0, 100, 150, 0.5)";
 
   context.fillRect(0, startWater, canvas.width, endWater-startWater);	
   
@@ -631,6 +649,15 @@ function draw_world(world, context) {
       var theta = 0.0;
       var dtheta = 2.0 * Math.PI / segments;
 
+	  
+	  //make gradient to cover the shape
+	  var grd=ctx.createLinearGradient( 0 ,(pos.y-r) * drawingScale,0,(pos.y+r)*drawingScale);
+	  grd.addColorStop(0,"#e7c");
+      grd.addColorStop(0.3,"#b5b");
+	  grd.addColorStop(0.6,"#754");
+	  grd.addColorStop(1,"#883");
+	  context.fillStyle=grd;
+	  
       // draw circle
       context.moveTo((pos.x + r) * drawingScale, pos.y * drawingScale);
 
@@ -751,7 +778,7 @@ function detonateBody(b){
 	createBlast(bodyPos);
 	//destroy_list.push(b);
 	b.shouldDestroy=true;
-	editLandscapeFixtureBlocks(bodyPos.x *25,bodyPos.y *25,500);
+	editLandscapeFixtureBlocks(bodyPos.x *25,bodyPos.y *25,40);
 	//console.log("destroying bomb at " + bodyPos.x + ", " + bodyPos.y);
 }
 
