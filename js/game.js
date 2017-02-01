@@ -408,10 +408,9 @@ function update(timeNow) {
 		   playerBody.ApplyForce(new b2Vec2(thrust*fwd.x,thrust*fwd.y), playerBody.GetWorldCenter());
 	   }
 	   //air resistance
-	   var playerVelocity = playerBody.GetLinearVelocity();
-	   var vsq = playerVelocity.x*playerVelocity.x + playerVelocity.y*playerVelocity.y;
-	   var dragMult = -0.01*Math.sqrt(vsq);
-	   playerBody.ApplyForce(new b2Vec2(dragMult*playerVelocity.x,dragMult*playerVelocity.y), playerBody.GetWorldCenter());	//note that vector stuff probably doable using box2dweb methods, if i can find any documentation for it....
+	   var dragVec = playerBody.GetLinearVelocity().Copy();
+	   dragVec.Multiply(-0.01*dragVec.Length());
+	   playerBody.ApplyForce(dragVec, playerBody.GetWorldCenter());	
 	   
 	   floatingPlatform.ApplyTorque(5000*keyThing.downKey());
    }
