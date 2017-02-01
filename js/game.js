@@ -16,6 +16,7 @@ var thrustForce=15;
 var willFireGun=false;
 var autofireCountdown=0;
 
+
 //var destroy_list = [];
 
 var floatingPlatform;
@@ -40,6 +41,8 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
 	    , b2BuoyancyController = Box2D.Dynamics.Controllers.b2BuoyancyController
           ;
 
+var camLookAhead = new b2Vec2(0,0);
+		  
 window.onresize = aspectFitCanvas;		
 
 function aspectFitCanvas(evt) {
@@ -412,6 +415,12 @@ function update(timeNow) {
 	   dragVec.Multiply(-0.01*dragVec.Length());
 	   playerBody.ApplyForce(dragVec, playerBody.GetWorldCenter());	
 	   
+	   //cam lookahead
+	   var scaledPVel = playerBody.GetLinearVelocity().Copy();
+	   scaledPVel.Multiply(0.02*0.3);
+	   camLookAhead.Multiply(0.98);
+	   camLookAhead.Add(scaledPVel);
+	   
 	   floatingPlatform.ApplyTorque(5000*keyThing.downKey());
    }
    
@@ -523,9 +532,9 @@ ctx.fillStyle=grd;
   
   context.fillRect(0, 0, canvas.width, canvas.height);	//so "lighter" globalCompositeOperation has something to start from
   
-  var speedOffsetScale=0.3;
-  var camPos = {x:playerBody.interpPos.x + speedOffsetScale*playerBody.GetLinearVelocity().x,
-				y:playerBody.interpPos.y + speedOffsetScale*playerBody.GetLinearVelocity().y, 
+  var camPos = {x:playerBody.interpPos.x + camLookAhead.x,
+				y:playerBody.interpPos.y + camLookAhead.y, 
+				
   };	//TODO also interpolate velocity
   
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPos.x, canvas.height/2-drawingScale*camPos.y);
