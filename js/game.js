@@ -407,6 +407,11 @@ function update(timeNow) {
 	   if (thrust!=0){
 		   playerBody.ApplyForce(new b2Vec2(thrust*fwd.x,thrust*fwd.y), playerBody.GetWorldCenter());
 	   }
+	   //air resistance
+	   var playerVelocity = playerBody.GetLinearVelocity();
+	   var vsq = playerVelocity.x*playerVelocity.x + playerVelocity.y*playerVelocity.y;
+	   var dragMult = -0.01*Math.sqrt(vsq);
+	   playerBody.ApplyForce(new b2Vec2(dragMult*playerVelocity.x,dragMult*playerVelocity.y), playerBody.GetWorldCenter());	//note that vector stuff probably doable using box2dweb methods, if i can find any documentation for it....
 	   
 	   floatingPlatform.ApplyTorque(5000*keyThing.downKey());
    }
@@ -519,16 +524,20 @@ ctx.fillStyle=grd;
   
   context.fillRect(0, 0, canvas.width, canvas.height);	//so "lighter" globalCompositeOperation has something to start from
   
-  ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*playerBody.interpPos.x, 
-								canvas.height/2-drawingScale*playerBody.interpPos.y);  //centred player
+  var speedOffsetScale=0.3;
+  var camPos = {x:playerBody.interpPos.x + speedOffsetScale*playerBody.GetLinearVelocity().x,
+				y:playerBody.interpPos.y + speedOffsetScale*playerBody.GetLinearVelocity().y, 
+  };	//TODO also interpolate velocity
+  
+  ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPos.x, canvas.height/2-drawingScale*camPos.y);
   context.fillStyle="#AAAAAA";
   context.strokeStyle="#000000";
   
   var screenBounds = {
-	  left: (drawingScale*playerBody.interpPos.x - canvas.width/2)/(drawingScale/25),
-	  right: (drawingScale*playerBody.interpPos.x + canvas.width/2)/(drawingScale/25),
-	  top: (drawingScale*playerBody.interpPos.y - canvas.height/2)/(drawingScale/25),
-	  bottom: (drawingScale*playerBody.interpPos.y + canvas.height/2)/(drawingScale/25)
+	  left: (drawingScale*camPos.x - canvas.width/2)/(drawingScale/25),
+	  right: (drawingScale*camPos.x + canvas.width/2)/(drawingScale/25),
+	  top: (drawingScale*camPos.y - canvas.height/2)/(drawingScale/25),
+	  bottom: (drawingScale*camPos.y + canvas.height/2)/(drawingScale/25)
   }
   
   //highlight/dehighlight bodies touched by player
@@ -627,7 +636,7 @@ ctx.fillStyle=grd;
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   //var startWater = canvas.height/2; //Math.max(0,)
-  var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+playerBody.interpPos.y));
+  var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+camPos.y));
   var endWater = canvas.height;
   //context.fillStyle="rgba(0, 150, 75, 0.5)";
   context.fillStyle="rgba(0, 100, 150, 0.5)";
