@@ -41,7 +41,11 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
 	    , b2BuoyancyController = Box2D.Dynamics.Controllers.b2BuoyancyController
           ;
 
-var camLookAhead = new b2Vec2(0,0);
+var camTargetPos = new b2Vec2(0,0);
+var camPos = new b2Vec2(0,0);
+var camVel = new b2Vec2(0,0);
+var camPosTargetLast = new b2Vec2(0,0);
+var camPosInterp = new b2Vec2(0,0);
 		  
 window.onresize = aspectFitCanvas;		
 
@@ -412,14 +416,52 @@ function update(timeNow) {
 	   }
 	   //air resistance
 	   var dragVec = playerBody.GetLinearVelocity().Copy();
+	   //var randomDrag = new b2Vec2(Math.random()-0.5, Math.random()-0.5);
+	   //randomDrag.Multiply(0.025*dragVec.LengthSquared());
 	   dragVec.Multiply(-0.01*dragVec.Length());
-	   playerBody.ApplyForce(dragVec, playerBody.GetWorldCenter());	
-	   
+	   playerBody.ApplyForce(dragVec, playerBody.GetWorldCenter());
+	   //playerBody.ApplyForce(randomDrag, playerBody.GetWorldCenter());
+
 	   //cam lookahead
+	   /*
 	   var scaledPVel = playerBody.GetLinearVelocity().Copy();
-	   scaledPVel.Multiply(0.02*0.3);
-	   camLookAhead.Multiply(0.98);
+	   scaledPVel.Multiply(0.04*0.3);
+	   camLookAhead.Multiply(0.96);
 	   camLookAhead.Add(scaledPVel);
+	   */
+	   camPosTarget = playerBody.GetTransform().position.Copy();
+	   camLookAhead = playerBody.GetLinearVelocity().Copy();
+	   camLookAhead.Multiply(0.5);
+	   camPosTarget.Add(camLookAhead);
+	   
+	   //camPos should be drawn towards this point using with spring/damper critical damping
+	   var camPosDifference = camPosTarget.Copy();
+	   camPosDifference.Subtract(camPos);
+	   
+	   var camVelDifference = camVel.Copy();
+		   var camVelTarget = camPosTarget.Copy();		//this depends on player acceleration as well as velocity
+		   camVelTarget.Subtract(camPosTargetLast);
+		   camPosTargetLast = camPosTarget.Copy();	
+	   camVelDifference.Subtract(camVelTarget);
+	   
+	   /*
+	   //sharp settings - to attempt to reduce slide to stop unpleasant effect
+	   camPosDifference.Multiply(0.00015);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
+	   camVelDifference.Multiply(-0.2);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
+	   */
+	   
+	   camPosDifference.Multiply(0.000015);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
+	   camVelDifference.Multiply(-0.06);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
+	   
+	   
+	   //apply an acceleration to camera proportional to position difference (damper)
+	   camVel.Add(camPosDifference);
+	   
+	   //apply an acceleration to camera proportional to velocity difference (damper)
+	   camVel.Add(camVelDifference);
+	   
+	   camPos.Add(camVel);
+	   
 	   
 	   floatingPlatform.ApplyTorque(5000*keyThing.downKey());
    }
@@ -514,6 +556,9 @@ function calcInterpPositions(remainderFraction){
 							currentPos.y*remainderFraction + oldPos.y*oneMinus );
 		}
 	}
+	camPosInterp = camVel.Copy();
+	camPosInterp.Multiply(remainderFraction);
+	camPosInterp.Add(camPos);
 }
 
 var drawingScale;
@@ -532,20 +577,19 @@ ctx.fillStyle=grd;
   
   context.fillRect(0, 0, canvas.width, canvas.height);	//so "lighter" globalCompositeOperation has something to start from
   
-  var camPos = {x:playerBody.interpPos.x + camLookAhead.x,
-				y:playerBody.interpPos.y + camLookAhead.y, 
-				
-  };	//TODO also interpolate velocity
+  //var camPos = {x:playerBody.interpPos.x + camLookAhead.x,
+	//			y:playerBody.interpPos.y + camLookAhead.y, 			
+  //};	//TODO also interpolate velocity
   
-  ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPos.x, canvas.height/2-drawingScale*camPos.y);
+  ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosInterp.x, canvas.height/2-drawingScale*camPosInterp.y);
   context.fillStyle="#AAAAAA";
   context.strokeStyle="#000000";
   
   var screenBounds = {
-	  left: (drawingScale*camPos.x - canvas.width/2)/(drawingScale/25),
-	  right: (drawingScale*camPos.x + canvas.width/2)/(drawingScale/25),
-	  top: (drawingScale*camPos.y - canvas.height/2)/(drawingScale/25),
-	  bottom: (drawingScale*camPos.y + canvas.height/2)/(drawingScale/25)
+	  left: (drawingScale*camPosInterp.x - canvas.width/2)/(drawingScale/25),
+	  right: (drawingScale*camPosInterp.x + canvas.width/2)/(drawingScale/25),
+	  top: (drawingScale*camPosInterp.y - canvas.height/2)/(drawingScale/25),
+	  bottom: (drawingScale*camPosInterp.y + canvas.height/2)/(drawingScale/25)
   }
   
   //highlight/dehighlight bodies touched by player
