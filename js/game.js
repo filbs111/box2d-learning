@@ -218,22 +218,9 @@ function init(){
 		levBoxCoords.push({X:-9900/5+800/5,Y:500/5});
 		landscapeBodyClippablePath.push(levBoxCoords);
 		
-	   ClipperLib.JS.ScaleUpPaths(landscapeBodyClippablePath, 5);
 		
-	   //chop landscape into a grid
-	   var gridOfPaths = chopIntoGrid(landscapeBodyClippablePath);
-	   var numBlocks = gridOfPaths.length;
-	   for (var ii=0;ii<numBlocks;ii++){
-			//create a new body
-			var thisGridInfo = gridOfPaths[ii];
-			var thisBody = world.CreateBody(landscapeBodyDef);
-			thisBody.clippablePath = thisGridInfo.paths;
-			thisBody.bounds = thisGridInfo.bounds;
-			updateLandscapeFixtures(thisBody);
-			landscapeBlocks.push(thisBody);
-	   }
-	   	   
-   	   //add an ellipse, to check the limit on vertices in a polygon shape. seems no real limit here - got up to 2048 ok!
+		
+		//add an ellipse, to check the limit on vertices in a polygon shape. seems no real limit here - got up to 2048 ok!
 		var num_ellipse_points = 64;
 		var ellipse_points = [];
 		for (var i = 0; i < num_ellipse_points; i++) {
@@ -249,27 +236,54 @@ function init(){
 		bodyDef.position.y = 10;
 		world.CreateBody(bodyDef).CreateFixture(fixDef);
 		
-		//add an edge shape (doesn't work for dynamic bodies AFAIK, should work for static.)
-		//apparently later versions of box2d have support for a "chain" edge too
-		fixDef.shape = new b2PolygonShape();
-		bodyDef.position.x = 0;
-		bodyDef.position.y = 0;
-		//fixDef.shape.SetAsEdge(new b2Vec2(0, 0), new b2Vec2(20, 0));
-		//world.CreateBody(bodyDef).CreateFixture(fixDef);
-		
-		/*
-		//can make a custom method to make a series of these into an extended curve. check whether this snags
-		var currentPos = new b2Vec2(0,0);
-		var lastPos;
-		var waveBody = world.CreateBody(bodyDef);
-		for (var ii=1;ii<50;ii++){
-			lastPos = currentPos;
-			currentPos = new b2Vec2(ii,10*Math.sin(ii/10));
-			fixDef.shape.SetAsEdge(currentPos, lastPos);
-			waveBody.CreateFixture(fixDef);
+		//add a rock shape
+		var rock_points = [];
+		var num_rock_points = 8;
+		for (var i = 0; i < num_rock_points; i++) {
+			var vec = new b2Vec2();
+			var ang = 2*Math.PI*i/num_rock_points;
+			vec.Set(4*Math.cos(ang), 2*Math.sin(ang));
+			rock_points[i] = vec;
 		}
-		*/
+		fixDef.shape.SetAsArray(rock_points, rock_points.length);
+		bodyDef.type = b2Body.b2_dynamicBody;
+		bodyDef.position.x = -230;
+		bodyDef.position.y = -190;
+		var rockBody = world.CreateBody(bodyDef)
+		rockBody.CreateFixture(fixDef);
 		
+		//chop the rock's shape out of the landscape.
+		chopB2VecArrayFromPath(rockBody, rock_points, landscapeBodyClippablePath );
+
+		function chopB2VecArrayFromPath(bod, b2arr, path){
+			var pos= bod.GetPosition();
+			var chopArr =[];
+			var b2arrlen = b2arr.length;
+			for (var ii=b2arrlen-1;ii>-1;ii--){	//for some reason has to backwards! (else the rock falls out of the hole!)
+			//for (var ii=0;ii<b2arrlen;ii++){
+				var thisb2 = b2arr[ii];
+				chopArr.push({X:(pos.x+thisb2.x)*5, Y:(pos.y+thisb2.y)*5});
+				console.log((pos.x+thisb2.x));
+			}
+			path.push(chopArr);
+		}
+		
+	   ClipperLib.JS.ScaleUpPaths(landscapeBodyClippablePath, 5);
+		
+	   //chop landscape into a grid
+	   var gridOfPaths = chopIntoGrid(landscapeBodyClippablePath);
+	   var numBlocks = gridOfPaths.length;
+	   for (var ii=0;ii<numBlocks;ii++){
+			//create a new body
+			var thisGridInfo = gridOfPaths[ii];
+			var thisBody = world.CreateBody(landscapeBodyDef);
+			thisBody.clippablePath = thisGridInfo.paths;
+			thisBody.bounds = thisGridInfo.bounds;
+			updateLandscapeFixtures(thisBody);
+			landscapeBlocks.push(thisBody);
+	   }
+	   	   
+   	    
 	   
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
@@ -321,7 +335,7 @@ function init(){
 			function destroyIfBomb(body1,body2){
 				if (body1.countdown){
 					detonateBody(body1);
-					body2.color = '#f88';
+					//body2.color = '#f88';
 				}
 			}
 		}
