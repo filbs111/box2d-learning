@@ -432,6 +432,16 @@ function update(timeNow) {
 	   camPosTarget = playerBody.GetTransform().position.Copy();
 	   camLookAhead = playerBody.GetLinearVelocity().Copy();
 	   camLookAhead.Multiply(0.5);
+	   
+	   //as a hack to avoid wierd slide to stop behaviour, make lookahead have a dead zone
+	   var camLookAheadTestHack = camLookAhead.Length();
+	   
+	   if (camLookAheadTestHack){
+			camLookAheadTestHack = Math.max(0,camLookAheadTestHack-1)/camLookAheadTestHack;	
+	   }
+	   //console.log(camLookAheadTestHack);
+	   camLookAhead.Multiply(camLookAheadTestHack);
+	   
 	   camPosTarget.Add(camLookAhead);
 	   
 	   //camPos should be drawn towards this point using with spring/damper critical damping
@@ -444,14 +454,9 @@ function update(timeNow) {
 		   camPosTargetLast = camPosTarget.Copy();	
 	   camVelDifference.Subtract(camVelTarget);
 	   
-	   /*
-	   //sharp settings - to attempt to reduce slide to stop unpleasant effect
-	   camPosDifference.Multiply(0.00015);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
-	   camVelDifference.Multiply(-0.2);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
-	   */
-	   
-	   camPosDifference.Multiply(0.000015);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
-	   camVelDifference.Multiply(-0.06);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
+	   //soft settings
+	   camPosDifference.Multiply(0.000002);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
+	   camVelDifference.Multiply(-0.07);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
 	   
 	   
 	   //apply an acceleration to camera proportional to position difference (damper)
