@@ -44,8 +44,8 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
 var camTargetPos = new b2Vec2(0,0);
 var camPos = new b2Vec2(0,0);
 var camVel = new b2Vec2(0,0);
-var camPosTargetLast = new b2Vec2(0,0);
 var camPosInterp = new b2Vec2(0,0);
+var camLookAhead = new b2Vec2(0,0);
 		  
 window.onresize = aspectFitCanvas;		
 
@@ -303,8 +303,8 @@ function init(){
 		fixDef.shape.SetAsArray(vecpoints, vecpoints.length);
 		fixDef.filter.categoryBits=2;
 		fixDef.filter.maskBits=3;	//collide with 1,2
-		bodyDef.position.x = -500;
-		bodyDef.position.y = 0;
+		bodyDef.position.x = -250;
+		bodyDef.position.y = -200;
 		playerBody = world.CreateBody(bodyDef);
 		playerBody.CreateFixture(fixDef);
 		playerBody.SetAngularDamping(10);
@@ -422,6 +422,8 @@ function update(timeNow) {
 	   playerBody.ApplyForce(dragVec, playerBody.GetWorldCenter());
 	   //playerBody.ApplyForce(randomDrag, playerBody.GetWorldCenter());
 
+	   
+	   
 	   //cam lookahead
 	   /*
 	   var scaledPVel = playerBody.GetLinearVelocity().Copy();
@@ -431,33 +433,32 @@ function update(timeNow) {
 	   */
 	   camPosTarget = playerBody.GetTransform().position.Copy();
 	   camLookAhead = playerBody.GetLinearVelocity().Copy();
-	   camLookAhead.Multiply(0.5);
+	   camLookAhead.Multiply(0.3);
 	   
 	   //as a hack to avoid wierd slide to stop behaviour, make lookahead have a dead zone
 	   var camLookAheadTestHack = camLookAhead.Length();
 	   
-	   if (camLookAheadTestHack){
-			camLookAheadTestHack = Math.max(0,camLookAheadTestHack-1)/camLookAheadTestHack;	
-	   }
-	   //console.log(camLookAheadTestHack);
+	   camLookAheadTestHack = camLookAheadTestHack/(camLookAheadTestHack+4);	//graduated "dead zone"
 	   camLookAhead.Multiply(camLookAheadTestHack);
-	   
 	   camPosTarget.Add(camLookAhead);
+	   
+	   //console.log(camLookAhead.Length().toFixed(2));
 	   
 	   //camPos should be drawn towards this point using with spring/damper critical damping
 	   var camPosDifference = camPosTarget.Copy();
 	   camPosDifference.Subtract(camPos);
+	   //console.log(camPosDifference.Length());
 	   
 	   var camVelDifference = camVel.Copy();
-		   var camVelTarget = camPosTarget.Copy();		//this depends on player acceleration as well as velocity
-		   camVelTarget.Subtract(camPosTargetLast);
-		   camPosTargetLast = camPosTarget.Copy();	
+	   
+		var camVelTarget = playerBody.GetLinearVelocity().Copy();	//not strictly same as target but produces better behaviour.
+	    camVelTarget.Multiply(timeStep*0.001);	//box2d works in seconds
+		   
 	   camVelDifference.Subtract(camVelTarget);
 	   
 	   //soft settings
-	   camPosDifference.Multiply(0.000002);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
-	   camVelDifference.Multiply(-0.07);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
-	   
+	   camPosDifference.Multiply(0.01);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
+	   camVelDifference.Multiply(-0.2);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
 	   
 	   //apply an acceleration to camera proportional to position difference (damper)
 	   camVel.Add(camPosDifference);
@@ -597,6 +598,7 @@ ctx.fillStyle=grd;
 	  bottom: (drawingScale*camPosInterp.y + canvas.height/2)/(drawingScale/25)
   }
   
+  
   //highlight/dehighlight bodies touched by player
   var playerContactCount =0;
   for (var c = playerBody.GetContactList(); c; c = c.next) {
@@ -657,18 +659,27 @@ ctx.fillStyle=grd;
 		}
 		context.fillStyle="rgba(150, 150, 125, 0.85)";
 		
+		var grd=ctx.createLinearGradient( 0 ,b.bounds.top*drawingScale/25, 0,b.bounds.bottom*drawingScale/25);
+		grd.addColorStop(0,"#eee");
+		grd.addColorStop(0.1,"#bbb");
+		grd.addColorStop(0.95,"#bbb");
 		
-		var grd=ctx.createLinearGradient(0,0,0,canvas.height);
-		grd.addColorStop(0,"yellow");
-		grd.addColorStop(1,"cyan");
-		//grd.addColorStop(0,"#aaa");
-		//grd.addColorStop(0.5,"#bbb");
-		//grd.addColorStop(0.6,"#777");
-		//grd.addColorStop(1,"#888");
+		/*
+		var centrex=0.5*(b.bounds.left + b.bounds.right)*drawingScale/25;
+		var centrey=0.5*(b.bounds.top + b.bounds.bottom)*drawingScale/25;
+		var rad = centrex- b.bounds.left*drawingScale/25;
+
+		var grd=ctx.createRadialGradient( centrex, centrey,0 ,centrex, centrey, rad*2);
+		grd.addColorStop(0,"#888");
+		grd.addColorStop(0.3,"#888");
+		grd.addColorStop(1,"#fff");
+		*/
+		
 		context.fillStyle=grd;
 		
 		context.fill();
 		//context.stroke();
+
 		
 	}
 	else{
@@ -691,6 +702,16 @@ ctx.fillStyle=grd;
   }
   ctx.globalCompositeOperation = "source-over"; //set back to default
 
+  /*
+  //draw camera???
+  context.fillStyle="#a0a";
+  context.fillRect(drawingScale*camPosInterp.x -5,drawingScale*camPosInterp.y -5,10,10 );
+  
+  //draw camlookahead
+  context.fillStyle="#0ff";
+  context.fillRect(drawingScale*(playerBody.interpPos.x + camLookAhead.x) -3, drawingScale*(playerBody.interpPos.y + camLookAhead.y) -3, 6,6);			
+  */
+  
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   //var startWater = canvas.height/2; //Math.max(0,)
   var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+camPos.y));
@@ -699,6 +720,7 @@ ctx.fillStyle=grd;
   context.fillStyle="rgba(0, 100, 150, 0.5)";
 
   context.fillRect(0, startWater, canvas.width, endWater-startWater);	
+  
   
   function drawShape(body, shape, context) {
   context.beginPath();
@@ -1094,7 +1116,7 @@ function chopIntoGrid(landsPath){
 	
 	printPathsInfo(landsPath);
 	
-	var gridDivs = 16;
+	var gridDivs = 8;
 	
 	//get bounding box of landscape.
 	var bounds = ClipperLib.Clipper.GetBounds(landsPath);
