@@ -22,6 +22,7 @@ var keyThing = (function myKeysStatesThing(){
 			keyStates[ii]=false;
 		})
 	}
+	window.oncontextmenu = window.onblur;
 	
 	return {
 		keystate: function(e){ return keyStates[e]?1:0;},

@@ -46,7 +46,7 @@ var camPos = new b2Vec2(0,0);
 var camVel = new b2Vec2(0,0);
 var camPosInterp = new b2Vec2(0,0);
 var camLookAhead = new b2Vec2(0,0);
-		  
+		
 window.onresize = aspectFitCanvas;		
 
 function aspectFitCanvas(evt) {
@@ -70,7 +70,8 @@ function aspectFitCanvas(evt) {
 	canvas.scale = canvas.width / 1000;	//apply some scale factor to drawing which is 1 for width 1000px
     drawingScale = 15*canvas.scale;
 }		  
-		  
+
+var isPlaying=true;		  
 function start(){	
 	stats = new Stats();
 	stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -98,7 +99,8 @@ function start(){
 		willFireGun=true;
 	});
 	keyThing.setKeydownCallback(80,function(){			//80=P
-
+		isPlaying = !isPlaying;
+		console.log("isPlaying : " + isPlaying);
 	});
 	
 	assetManager.setOnloadFunc(function(){
@@ -386,7 +388,7 @@ function update(timeNow) {
    }else{
 	   currentTime+=timeStep*updatesRequired;
    }
-   if (updatesRequired>0){
+   if (updatesRequired>0 && isPlaying){
 	   if (updatesRequired>1){
 		   for (var ii=1;ii<updatesRequired;ii++){
 			   processInput();
