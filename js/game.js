@@ -114,6 +114,9 @@ function start(){
 	
 }
 
+
+var SCALE = 25;	
+
 function init(){
 	initscount++;
 	console.log("init called. " + initscount);
@@ -123,7 +126,6 @@ function init(){
           ,  true                 //allow sleep
        );
        
-       var SCALE = 25;
      
 	 //
 	// Create a buoyancy controller
@@ -228,14 +230,14 @@ function init(){
 		for (var i = 0; i < num_ellipse_points; i++) {
 			var vec = new b2Vec2();
 			var ang = 2*Math.PI*i/num_ellipse_points;
-			vec.Set(15*Math.cos(ang), 2*Math.sin(ang));
+			vec.Set(375*Math.cos(ang)/SCALE, 50*Math.sin(ang)/SCALE);
 			ellipse_points[i] = vec;
 		}
 	    bodyDef.type = b2Body.b2_staticBody;
 		//bodyDef.type = b2Body.b2_dynamicBody;
 		fixDef.shape.SetAsArray(ellipse_points, ellipse_points.length);
-		bodyDef.position.x = 50;
-		bodyDef.position.y = 10;
+		bodyDef.position.x = 1250/SCALE;
+		bodyDef.position.y = 250/SCALE;
 		world.CreateBody(bodyDef).CreateFixture(fixDef);
 		
 		//add a rock shape
@@ -244,13 +246,13 @@ function init(){
 		for (var i = 0; i < num_rock_points; i++) {
 			var vec = new b2Vec2();
 			var ang = 2*Math.PI*i/num_rock_points;
-			vec.Set(4*Math.cos(ang), 2*Math.sin(ang));
+			vec.Set(100*Math.cos(ang)/SCALE, 50*Math.sin(ang)/SCALE);
 			rock_points[i] = vec;
 		}
 		fixDef.shape.SetAsArray(rock_points, rock_points.length);
 		bodyDef.type = b2Body.b2_dynamicBody;
-		bodyDef.position.x = -230;
-		bodyDef.position.y = -190;
+		bodyDef.position.x = -5750/SCALE;
+		bodyDef.position.y = -4750/SCALE;
 		var rockBody = world.CreateBody(bodyDef)
 		rockBody.CreateFixture(fixDef);
 		
@@ -264,7 +266,7 @@ function init(){
 			for (var ii=b2arrlen-1;ii>-1;ii--){	//for some reason has to backwards! (else the rock falls out of the hole!)
 			//for (var ii=0;ii<b2arrlen;ii++){
 				var thisb2 = b2arr[ii];
-				chopArr.push({X:(pos.x+thisb2.x)*5, Y:(pos.y+thisb2.y)*5});
+				chopArr.push({X:(pos.x+thisb2.x)*SCALE/5, Y:(pos.y+thisb2.y)*SCALE/5});
 				console.log((pos.x+thisb2.x));
 			}
 			path.push(chopArr);
@@ -293,16 +295,16 @@ function init(){
           if(Math.random() > 0.5) {
              fixDef.shape = new b2PolygonShape;
              fixDef.shape.SetAsBox(
-                   Math.random() + 0.1 //half width
-                ,  Math.random() + 0.1 //half height
+                   (Math.random() + 0.1)*(25/SCALE) //half width
+                ,  (Math.random() + 0.1)*(25/SCALE) //half height
              );
           } else {
              fixDef.shape = new b2CircleShape(
-                Math.random() + 0.1 //radius
+					(Math.random() + 0.1)*(25/SCALE) //radius
              );
           }
-          bodyDef.position.x = -400 + Math.random() * 20;
-          bodyDef.position.y = -400+Math.random() * 20;
+          bodyDef.position.x = (-400 + Math.random() * 20)*(25/SCALE);
+          bodyDef.position.y = (-400 + Math.random() * 20)*(25/SCALE);
           world.CreateBody(bodyDef).CreateFixture(fixDef);
        }
 	   
@@ -312,15 +314,15 @@ function init(){
 
 		for (var i = 0; i < points.length; i++) {
 			var vec = new b2Vec2();
-			vec.Set(points[i][0], points[i][1]);
+			vec.Set(points[i][0]*(25/SCALE), points[i][1]*(25/SCALE));
 			vecpoints[i] = vec;
 		}
 		fixDef.shape = new b2PolygonShape;
 		fixDef.shape.SetAsArray(vecpoints, vecpoints.length);
 		fixDef.filter.categoryBits=2;
 		fixDef.filter.maskBits=3;	//collide with 1,2
-		bodyDef.position.x = -250;
-		bodyDef.position.y = -200;
+		bodyDef.position.x = -6250/SCALE;
+		bodyDef.position.y = -5000/SCALE;
 		playerBody = world.CreateBody(bodyDef);
 		playerBody.CreateFixture(fixDef);
 		playerBody.SetAngularDamping(10);
@@ -608,10 +610,10 @@ ctx.fillStyle=grd;
   context.strokeStyle="#000000";
   
   var screenBounds = {
-	  left: (drawingScale*camPosInterp.x - canvas.width/2)/(drawingScale/25),
-	  right: (drawingScale*camPosInterp.x + canvas.width/2)/(drawingScale/25),
-	  top: (drawingScale*camPosInterp.y - canvas.height/2)/(drawingScale/25),
-	  bottom: (drawingScale*camPosInterp.y + canvas.height/2)/(drawingScale/25)
+	  left: (drawingScale*camPosInterp.x - canvas.width/2)/(drawingScale/SCALE),
+	  right: (drawingScale*camPosInterp.x + canvas.width/2)/(drawingScale/SCALE),
+	  top: (drawingScale*camPosInterp.y - canvas.height/2)/(drawingScale/SCALE),
+	  bottom: (drawingScale*camPosInterp.y + canvas.height/2)/(drawingScale/SCALE)
   }
   
   
@@ -666,36 +668,24 @@ ctx.fillStyle=grd;
 			for (var ii=0;ii<numLoops;ii++){
 				thisLoop = cPath[ii];
 				numPoints = thisLoop.length;
-				context.moveTo( thisLoop[0].X * drawingScale/25, thisLoop[0].Y * drawingScale/25);
+				context.moveTo( thisLoop[0].X * drawingScale/SCALE, thisLoop[0].Y * drawingScale/SCALE);
 				for (var jj=1;jj<numPoints;jj++){
-					context.lineTo( thisLoop[jj].X * drawingScale/25, thisLoop[jj].Y * drawingScale/25);
+					context.lineTo( thisLoop[jj].X * drawingScale/SCALE, thisLoop[jj].Y * drawingScale/SCALE);
 				}
 				context.closePath();
 			}
 		}
 		context.fillStyle="rgba(150, 150, 125, 0.85)";
 		
-		var grd=ctx.createLinearGradient( 0 ,b.bounds.top*drawingScale/25, 0,b.bounds.bottom*drawingScale/25);
+		var grd=ctx.createLinearGradient( 0 ,b.bounds.top*drawingScale/SCALE, 0,b.bounds.bottom*drawingScale/SCALE);
 		grd.addColorStop(0,"#eee");
 		grd.addColorStop(0.1,"#bbb");
 		grd.addColorStop(0.95,"#bbb");
-		
-		/*
-		var centrex=0.5*(b.bounds.left + b.bounds.right)*drawingScale/25;
-		var centrey=0.5*(b.bounds.top + b.bounds.bottom)*drawingScale/25;
-		var rad = centrex- b.bounds.left*drawingScale/25;
-
-		var grd=ctx.createRadialGradient( centrex, centrey,0 ,centrex, centrey, rad*2);
-		grd.addColorStop(0,"#888");
-		grd.addColorStop(0.3,"#888");
-		grd.addColorStop(1,"#fff");
-		*/
 		
 		context.fillStyle=grd;
 		
 		context.fill();
 		//context.stroke();
-
 		
 	}
 	else{
@@ -717,16 +707,6 @@ ctx.fillStyle=grd;
 	explosions[e].draw();
   }
   ctx.globalCompositeOperation = "source-over"; //set back to default
-
-  /*
-  //draw camera???
-  context.fillStyle="#a0a";
-  context.fillRect(drawingScale*camPosInterp.x -5,drawingScale*camPosInterp.y -5,10,10 );
-  
-  //draw camlookahead
-  context.fillStyle="#0ff";
-  context.fillRect(drawingScale*(playerBody.interpPos.x + camLookAhead.x) -3, drawingScale*(playerBody.interpPos.y + camLookAhead.y) -3, 6,6);			
-  */
   
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   //var startWater = canvas.height/2; //Math.max(0,)
@@ -882,7 +862,7 @@ function detonateBody(b){
 	createBlast(bodyPos);
 	//destroy_list.push(b);
 	b.shouldDestroy=true;
-	editLandscapeFixtureBlocks(bodyPos.x *25,bodyPos.y *25,40);
+	editLandscapeFixtureBlocks(bodyPos.x *SCALE,bodyPos.y *SCALE,40);
 	//console.log("destroying bomb at " + bodyPos.x + ", " + bodyPos.y);
 }
 
@@ -974,7 +954,6 @@ function purgeLandscapeFixtures(body){
 
 function updateLandscapeFixtures(body){
 	
-	var SCALE = 25;
 	var fixDef = new b2FixtureDef;
     fixDef.density = 1.0;
     fixDef.friction = 0.5;
