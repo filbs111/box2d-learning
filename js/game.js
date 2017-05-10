@@ -9,7 +9,7 @@ var stats;
 
 var initscount=0;
 var currentTime;
-var timeStep = 1000/60;	//milliseconds. 60fps (mechanics)
+var timeStep = 1000/30;	//milliseconds. 30fps (mechanics)
 var maxUpdatesPerFrame = 5;
 var playerBody;
 var willFireGun=false;
@@ -114,7 +114,7 @@ function start(){
 }
 
 
-var SCALE = 25;
+var SCALE = 50;
 var relativeScale = 25/SCALE;	//previously tuned variables for scale=25
 var forceScale = Math.pow(relativeScale,3);	//change world by scale - F=ma. mass goes as square of length. accn linear.
 var torqueScale = Math.pow(relativeScale,4);	//not sure why - mass goes as square, avg distance from centre goes as linear,
