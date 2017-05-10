@@ -9,7 +9,7 @@ var stats;
 
 var initscount=0;
 var currentTime;
-var mechanicsFps = 20;
+var mechanicsFps = 15;
 var timeStep = 1000/mechanicsFps;
 var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
 var maxUpdatesPerFrame = 5;
@@ -88,7 +88,7 @@ function start(){
 	
 	init();
 	keyThing.setKeydownCallback(32,function(){			//32=space key
-		playerBody.ApplyForce(new b2Vec2(0,-100), playerBody.GetWorldCenter());	//upward force
+		playerBody.ApplyForce(new b2Vec2(0,-100*forceScale), playerBody.GetWorldCenter());	//upward force
 	});
 	keyThing.setKeydownCallback(82,function(){			//82=R
 		init();
@@ -116,7 +116,7 @@ function start(){
 }
 
 
-var SCALE = 75;
+var SCALE = 100;
 var relativeScale = 25/SCALE;	//previously tuned variables for scale=25
 var forceScale = Math.pow(relativeScale,3);	//change world by scale - F=ma. mass goes as square of length. accn linear.
 var torqueScale = Math.pow(relativeScale,4);	//not sure why - mass goes as square, avg distance from centre goes as linear,
@@ -412,7 +412,7 @@ function update(timeNow) {
    //debugCtx.setTransform(1, 0, 0, 1, 100, 0);  //can transform debug canvas anyway, but should then also manually clear it
    //world.DrawDebugData();
    calcInterpPositions(remainderFraction);
-   draw_world(world, ctx);
+   draw_world(world, ctx, remainderFraction);
    stats.end();
    requestAnimationFrame(update);
    
@@ -596,7 +596,7 @@ var drawingScale;
 var skipLandsDraw=false;
 var skipLandsClip=true;
 
-function draw_world(world, context) {
+function draw_world(world, context, remainderFraction) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
 //  context.fillStyle= "#AAFFFF";
   
@@ -703,7 +703,7 @@ ctx.fillStyle=grd;
 		  if (isNaN(b.GetPosition().x)) {
 			alert('Invalid Position : ' + b.GetPosition().x);
 		  } else {
-			drawShape(b, shape, context);
+			drawShape(b, shape, context, remainderFraction);
 		  }
 		}
 	}
@@ -725,7 +725,7 @@ ctx.fillStyle=grd;
   context.fillRect(0, startWater, canvas.width, endWater-startWater);	
   
   
-  function drawShape(body, shape, context) {
+  function drawShape(body, shape, context, remainderFraction) {
   context.beginPath();
 
   switch (shape.GetType()) {
@@ -781,7 +781,16 @@ ctx.fillStyle=grd;
 	  
       var tV = position.Copy();
       var a = vert[0].Copy();
+	  
       a.MulM(body.GetTransform().R);
+	  
+	  var angAdjust = 0.001*timeStep*remainderFraction*body.GetAngularVelocity();
+	  var cosAng = Math.cos(angAdjust);
+	  var sinAng = Math.sin(angAdjust);
+	  var interpMat = {col1:{x:cosAng,y:sinAng},col2:{x:-sinAng,y:cosAng}};
+	  
+	  a.MulM(interpMat); 
+	  
       tV.Add(a);
 
       context.moveTo(tV.x * drawingScale, tV.y * drawingScale);
@@ -789,6 +798,8 @@ ctx.fillStyle=grd;
       for (var i = 0; i < vert.length; i++) {
         var v = vert[i].Copy();
         v.MulM(body.GetTransform().R);
+		v.MulM(interpMat); 
+
         v.Add(position);
         context.lineTo(v.x * drawingScale, v.y * drawingScale);
       }
