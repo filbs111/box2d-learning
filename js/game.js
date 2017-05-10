@@ -12,7 +12,6 @@ var currentTime;
 var timeStep = 1000/60;	//milliseconds. 60fps (mechanics)
 var maxUpdatesPerFrame = 5;
 var playerBody;
-var thrustForce=15;
 var willFireGun=false;
 var autofireCountdown=0;
 
@@ -68,7 +67,7 @@ function aspectFitCanvas(evt) {
 		canvas.height = ch*pixelRatio;
     }
 	canvas.scale = canvas.width / 1000;	//apply some scale factor to drawing which is 1 for width 1000px
-    drawingScale = 15*canvas.scale;
+    drawingScale = (SCALE/25)*15*canvas.scale;
 }		  
 
 var isPlaying=true;		  
@@ -115,14 +114,20 @@ function start(){
 }
 
 
-var SCALE = 25;	
+var SCALE = 25;
+var relativeScale = 25/SCALE;	//previously tuned variables for scale=25
+var forceScale = Math.pow(relativeScale,3);	//change world by scale - F=ma. mass goes as square of length. accn linear.
+var torqueScale = Math.pow(relativeScale,4);	//not sure why - mass goes as square, avg distance from centre goes as linear,
+												//so expected power 3. possibly this is what determines steady turn speed, and really
+												//should be altering angular damping too.
+var thrustForce=15*forceScale;
 
 function init(){
 	initscount++;
 	console.log("init called. " + initscount);
 	
        world = new b2World(
-             new b2Vec2(0, 10)    //gravity
+             new b2Vec2(0, 10*relativeScale)    //gravity
           ,  true                 //allow sleep
        );
        
@@ -424,7 +429,7 @@ function update(timeNow) {
 	   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
 	   var turn = keyThing.rightKey() - keyThing.leftKey();
 	   if (turn!=0){
-		   playerBody.ApplyTorque(6*turn);
+		   playerBody.ApplyTorque(6*turn*torqueScale);
 	   }
 	   var thrust = thrustForce*keyThing.upKey();
 	   //console.log(thrust);
@@ -436,7 +441,7 @@ function update(timeNow) {
 	   var dragVec = playerBody.GetLinearVelocity().Copy();
 	   //var randomDrag = new b2Vec2(Math.random()-0.5, Math.random()-0.5);
 	   //randomDrag.Multiply(0.025*dragVec.LengthSquared());
-	   dragVec.Multiply(-0.01*dragVec.Length());
+	   dragVec.Multiply(-0.01*relativeScale*dragVec.Length());
 	   playerBody.ApplyForce(dragVec, playerBody.GetWorldCenter());
 	   //playerBody.ApplyForce(randomDrag, playerBody.GetWorldCenter());
 
@@ -823,12 +828,12 @@ var bombfixDef = new b2FixtureDef;
 	   bombfixDef.filter.maskBits=1;	//collide with 1 only
 	   
 bombfixDef.shape = new b2CircleShape(
-			0.1 //radius
+			0.1*relativeScale //radius
 		 );	  		 
    
 function dropBomb(){
   //var speeds = [{fwd:0,left:0}];	//bomb
-  var speeds = [{fwd:20,left:0}];
+  var speeds = [{fwd:20*relativeScale,left:0}];
   //var speeds = [{fwd:35,left:0}, {fwd:30,left:5}, {fwd:30,left:-5}];	//triple shot
   //var speeds = [{fwd:25,left:0}, {fwd:20,left:5}, {fwd:20,left:-5}];	//triple shot
   //var speeds = [{fwd:15,left:0}, {fwd:10,left:5}, {fwd:10,left:-5}];	//triple shot
@@ -858,7 +863,7 @@ function dropBomb(){
 
 function detonateBody(b){
 	var bodyPos = b.GetTransform().position;
-	new Explosion(bodyPos.x, bodyPos.y , 0,0, 2,0.5 );
+	new Explosion(bodyPos.x, bodyPos.y , 0,0, 2*relativeScale,0.5 );
 	createBlast(bodyPos);
 	//destroy_list.push(b);
 	b.shouldDestroy=true;
