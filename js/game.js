@@ -9,7 +9,9 @@ var stats;
 
 var initscount=0;
 var currentTime;
-var timeStep = 1000/30;	//milliseconds. 30fps (mechanics)
+var mechanicsFps = 20;
+var timeStep = 1000/mechanicsFps;
+var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
 var maxUpdatesPerFrame = 5;
 var playerBody;
 var willFireGun=false;
@@ -114,7 +116,7 @@ function start(){
 }
 
 
-var SCALE = 50;
+var SCALE = 75;
 var relativeScale = 25/SCALE;	//previously tuned variables for scale=25
 var forceScale = Math.pow(relativeScale,3);	//change world by scale - F=ma. mass goes as square of length. accn linear.
 var torqueScale = Math.pow(relativeScale,4);	//not sure why - mass goes as square, avg distance from centre goes as linear,
@@ -863,7 +865,7 @@ function dropBomb(){
 
 function detonateBody(b){
 	var bodyPos = b.GetTransform().position;
-	new Explosion(bodyPos.x, bodyPos.y , 0,0, 2*relativeScale,0.5 );
+	new Explosion(bodyPos.x, bodyPos.y , 0,0, 2*relativeScale,0.5*relativeTimescale );
 	createBlast(bodyPos);
 	//destroy_list.push(b);
 	b.shouldDestroy=true;
@@ -881,7 +883,7 @@ function createBlast(position){
 		relativePos = {x:bodyPos.x-position.x,
 							y:bodyPos.y-position.y};
 		distSq = relativePos.x*relativePos.x + relativePos.y*relativePos.y;
-		multiplier = 10/(0.5+distSq);
+		multiplier = 10*forceScale/(0.5+distSq);
 		if (!b.countdown && b!=playerBody){	//not a bomb or player (for development convenience)
 			b.ApplyImpulse(new b2Vec2(relativePos.x*multiplier,relativePos.y*multiplier), b.GetWorldCenter());	//upward force
 		}
