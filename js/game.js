@@ -587,8 +587,9 @@ function calcInterpPositions(remainderFraction){
 							currentPos.y*remainderFraction + oldPos.y*oneMinus );
 		}
 	}
+	
 	camPosInterp = camVel.Copy();
-	camPosInterp.Multiply(remainderFraction);
+	camPosInterp.Multiply(-oneMinus);
 	camPosInterp.Add(camPos);
 }
 
