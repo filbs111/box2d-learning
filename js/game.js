@@ -421,12 +421,7 @@ function update(timeNow) {
 		   dropBomb();
 		   willFireGun=false;
 	   }
-	   if (autofireCountdown>0){
-		   autofireCountdown--;
-	   } else if (keyThing.bombKey()){
-		   autofireCountdown=2;
-		   dropBomb();
-	   }
+	   if (keyThing.bombKey()){dropBomb();}
 	   
 	   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
 	   var turn = keyThing.rightKey() - keyThing.leftKey();
@@ -847,7 +842,7 @@ bombfixDef.shape = new b2CircleShape(
    
 function dropBomb(){
   //var speeds = [{fwd:0,left:0}];	//bomb
-  var speeds = [{fwd:20*relativeScale,left:0}];
+  var speeds = [{fwd:20*relativeScale + gaussRand()*2*relativeScale,left:gaussRand()*2*relativeScale}];
   //var speeds = [{fwd:35,left:0}, {fwd:30,left:5}, {fwd:30,left:-5}];	//triple shot
   //var speeds = [{fwd:25,left:0}, {fwd:20,left:5}, {fwd:20,left:-5}];	//triple shot
   //var speeds = [{fwd:15,left:0}, {fwd:10,left:5}, {fwd:10,left:-5}];	//triple shot
