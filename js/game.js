@@ -259,7 +259,7 @@ function init(){
 		fixDef.shape.SetAsArray(rock_points, rock_points.length);
 		bodyDef.type = b2Body.b2_dynamicBody;
 		bodyDef.position.x = -5750/SCALE;
-		bodyDef.position.y = -4750/SCALE;
+		bodyDef.position.y = -5000/SCALE;
 		var rockBody = world.CreateBody(bodyDef)
 		rockBody.CreateFixture(fixDef);
 		
@@ -276,7 +276,16 @@ function init(){
 				chopArr.push({X:(pos.x+thisb2.x)*SCALE/5, Y:(pos.y+thisb2.y)*SCALE/5});
 				console.log((pos.x+thisb2.x));
 			}
-			path.push(chopArr);
+			
+			//path.push(chopArr);	//only works if entirely within level
+			
+			//this maybe inefficient - can cpr object be reused? is cutting the whole level (before grid chop) super slow?
+			var cpr = new ClipperLib.Clipper();
+	
+			cpr.AddPaths(path, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
+			cpr.AddPath(chopArr, ClipperLib.PolyType.ptClip, true);
+			
+			var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, path, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
 		}
 		
 	   ClipperLib.JS.ScaleUpPaths(landscapeBodyClippablePath, 5);
