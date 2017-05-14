@@ -1142,32 +1142,46 @@ function chopIntoGrid(landsPath){
 	var xstep = (bounds.right-bounds.left)/gridDivs;
 	var ystep = (bounds.bottom-bounds.top)/gridDivs;
 	var gap=5;	//for illustration. TODO remove
-	//chop each block out. TODO make this faster by recursive binary chopping
+	//chop each block out. 
+	//chop into lines first - probably not quite as fast as binary chopping, but unimportant
 	
 	for (var ii=0;ii<gridDivs;ii++){
-		for (var jj=0;jj<gridDivs;jj++){
-			var left = bounds.left + ii*xstep + gap;
-			var right = left+xstep - gap;
-			var top = bounds.top + jj*ystep + gap;
-			var bottom = top + ystep - gap;
-			var clipPath = [{X:left, Y:top}, {X:left, Y:bottom}, {X:right, Y:bottom}, {X:right, Y:top}];
-			var resultPath=[];
-			
-			cpr.Clear();	
-			cpr.AddPaths(landsPath, ClipperLib.PolyType.ptSubject, true);
-			cpr.AddPath(clipPath, ClipperLib.PolyType.ptClip, true);
+		var left = bounds.left + ii*xstep + gap;
+		var right = left+xstep - gap;
+		var clipPath = [{X:left, Y:bounds.top}, {X:left, Y:bounds.bottom}, {X:right, Y:bounds.bottom}, {X:right, Y:bounds.top}];
+		var resultPathStrip=[];
 
-			var succeeded = cpr.Execute(ClipperLib.ClipType.ctIntersection, resultPath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
-			if (resultPath.length>0){
-				printPathsInfo(resultPath);
-				outputArray.push({
-					paths:resultPath,
-					bounds:ClipperLib.Clipper.GetBounds(resultPath)	//keep bounding box info on block object.
-				});
-			}else{
-				console.log("no paths in result!");
+		cpr.Clear();	
+		cpr.AddPaths(landsPath, ClipperLib.PolyType.ptSubject, true);
+		cpr.AddPath(clipPath, ClipperLib.PolyType.ptClip, true);
+		
+		var succeeded = cpr.Execute(ClipperLib.ClipType.ctIntersection, resultPathStrip, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+		
+		if (resultPathStrip.length>0){
+			for (var jj=0;jj<gridDivs;jj++){
+				var top = bounds.top + jj*ystep + gap;
+				var bottom = top + ystep - gap;
+				var clipPath = [{X:left, Y:top}, {X:left, Y:bottom}, {X:right, Y:bottom}, {X:right, Y:top}];
+				var resultPath=[];
+				
+				cpr.Clear();	
+				cpr.AddPaths(resultPathStrip, ClipperLib.PolyType.ptSubject, true);
+				cpr.AddPath(clipPath, ClipperLib.PolyType.ptClip, true);
+
+				var succeeded = cpr.Execute(ClipperLib.ClipType.ctIntersection, resultPath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+				if (resultPath.length>0){
+					//printPathsInfo(resultPath);
+					outputArray.push({
+						paths:resultPath,
+						bounds:ClipperLib.Clipper.GetBounds(resultPath)	//keep bounding box info on block object.
+					});
+				}else{
+					//console.log("no paths in result!");
+				}
 			}
 		}
+		
+		
 	}
 	return outputArray;
 }
