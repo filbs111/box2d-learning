@@ -47,6 +47,9 @@ var camPos = new b2Vec2(0,0);
 var camVel = new b2Vec2(0,0);
 var camPosInterp = new b2Vec2(0,0);
 var camLookAhead = new b2Vec2(0,0);
+
+var cpr = new ClipperLib.Clipper();
+
 		
 window.onresize = aspectFitCanvas;		
 
@@ -280,8 +283,7 @@ function init(){
 			//path.push(chopArr);	//only works if entirely within level
 			
 			//this maybe inefficient - can cpr object be reused? is cutting the whole level (before grid chop) super slow?
-			var cpr = new ClipperLib.Clipper();
-	
+			cpr.Clear();
 			cpr.AddPaths(path, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
 			cpr.AddPath(chopArr, ClipperLib.PolyType.ptClip, true);
 			
@@ -1064,8 +1066,7 @@ function editLandscapeFixture(body,x,y,r){
 	
 	
 	//temporary test - make a fixed edit to landscape
-	cpr = new ClipperLib.Clipper();
-	
+	cpr.Clear();
 	cpr.AddPaths(body.clippablePath, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
 
 	//var cutPath = [{X:x-r,Y:y-r},{X:x-r,Y:y+r},{X:x+r,Y:y+r},{X:x+r,Y:y-r}]; //square
@@ -1142,7 +1143,6 @@ function chopIntoGrid(landsPath){
 	var ystep = (bounds.bottom-bounds.top)/gridDivs;
 	var gap=5;	//for illustration. TODO remove
 	//chop each block out. TODO make this faster by recursive binary chopping
-	cpr = new ClipperLib.Clipper();
 	
 	for (var ii=0;ii<gridDivs;ii++){
 		for (var jj=0;jj<gridDivs;jj++){
