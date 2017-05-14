@@ -1142,6 +1142,8 @@ function chopIntoGrid(landsPath){
 	var ystep = (bounds.bottom-bounds.top)/gridDivs;
 	var gap=5;	//for illustration. TODO remove
 	//chop each block out. TODO make this faster by recursive binary chopping
+	cpr = new ClipperLib.Clipper();
+	
 	for (var ii=0;ii<gridDivs;ii++){
 		for (var jj=0;jj<gridDivs;jj++){
 			var left = bounds.left + ii*xstep + gap;
@@ -1151,7 +1153,7 @@ function chopIntoGrid(landsPath){
 			var clipPath = [{X:left, Y:top}, {X:left, Y:bottom}, {X:right, Y:bottom}, {X:right, Y:top}];
 			var resultPath=[];
 			
-			cpr = new ClipperLib.Clipper();
+			cpr.Clear();	
 			cpr.AddPaths(landsPath, ClipperLib.PolyType.ptSubject, true);
 			cpr.AddPath(clipPath, ClipperLib.PolyType.ptClip, true);
 
