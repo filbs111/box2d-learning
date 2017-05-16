@@ -9,10 +9,10 @@ var stats;
 
 var initscount=0;
 var currentTime;
-var mechanicsFps = 15;
+var mechanicsFps = 30;
 var timeStep = 1000/mechanicsFps;
 var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
-var maxUpdatesPerFrame = 5;
+var maxUpdatesPerFrame = 3;
 var playerBody;
 var willFireGun=false;
 var autofireCountdown=0;
@@ -56,9 +56,9 @@ window.onresize = aspectFitCanvas;
 function aspectFitCanvas(evt) {
     var ww = window.innerWidth;
     var wh = window.innerHeight;
-	var desiredAspect=2;
+	var desiredAspect=1.6;
 	var pixelRatio=1;		//set to 0.5 to double size of canvas pixels on screen etc
-	if ( ww * canvas.height > wh * canvas.width ) {
+	if ( ww  > wh * desiredAspect ) {
 		var cw = wh * desiredAspect;
         canvas.style.height = "" + wh + "px";
         canvas.style.width = "" + cw + "px";
@@ -115,14 +115,14 @@ function start(){
 		EXPL: settings.EXPLOSION_IMAGE_SRC
 	});
 	
-	
 }
 
 
 var SCALE = 100;
 var relativeScale = 25/SCALE;	//previously tuned variables for scale=25
-var forceScale = Math.pow(relativeScale,3);	//change world by scale - F=ma. mass goes as square of length. accn linear.
-var torqueScale = Math.pow(relativeScale,4);	//not sure why - mass goes as square, avg distance from centre goes as linear,
+var distsqScale=relativeScale*relativeScale;
+var forceScale = relativeScale*distsqScale;	//change world by scale - F=ma. mass goes as square of length. accn linear.
+var torqueScale = relativeScale*forceScale;	//not sure why - mass goes as square, avg distance from centre goes as linear,
 												//so expected power 3. possibly this is what determines steady turn speed, and really
 												//should be altering angular damping too.
 var thrustForce=15*forceScale;
@@ -309,7 +309,7 @@ function init(){
 	   
        //create some objects
        bodyDef.type = b2Body.b2_dynamicBody;
-       for(var i = 0; i < 50; ++i) {
+       for(var i = 0; i < 100; ++i) {
           if(Math.random() > 0.5) {
              fixDef.shape = new b2PolygonShape;
              fixDef.shape.SetAsBox(
@@ -321,8 +321,8 @@ function init(){
 					(Math.random() + 0.1)*(25/SCALE) //radius
              );
           }
-          bodyDef.position.x = (-400 + Math.random() * 20)*(25/SCALE);
-          bodyDef.position.y = (-400 + Math.random() * 20)*(25/SCALE);
+          bodyDef.position.x = (-240 + Math.random() * 20)*(25/SCALE);
+          bodyDef.position.y = (-240 + Math.random() * 20)*(25/SCALE);
           world.CreateBody(bodyDef).CreateFixture(fixDef);
        }
 	   
@@ -390,6 +390,9 @@ function init(){
 	   
 	   copyPositions();
 }; // init()
+
+var velIts=8;
+var posIts=3;
 
 function update(timeNow) {
    
@@ -568,8 +571,8 @@ function update(timeNow) {
 	   
 	   world.Step(
 			 0.001*timeStep   //seconds
-		  ,  8       //velocity iterations
-		  ,  3       //position iterations
+		  ,  velIts       //velocity iterations
+		  ,  posIts       //position iterations
 	   );
 	   world.ClearForces();
    }
@@ -858,6 +861,11 @@ function dropBomb(){
   //var speeds = [{fwd:25,left:0}, {fwd:20,left:5}, {fwd:20,left:-5}];	//triple shot
   //var speeds = [{fwd:15,left:0}, {fwd:10,left:5}, {fwd:10,left:-5}];	//triple shot
   
+  //random spray for stress test
+  for (var ii=0;ii<5;ii++){
+	  speeds.push({fwd:gaussRand()*10*relativeScale,left:gaussRand()*10*relativeScale});
+  }
+  
   var fwd = playerBody.GetTransform().R.col2;
   var left = playerBody.GetTransform().R.col1;
   
@@ -901,7 +909,7 @@ function createBlast(position){
 		relativePos = {x:bodyPos.x-position.x,
 							y:bodyPos.y-position.y};
 		distSq = relativePos.x*relativePos.x + relativePos.y*relativePos.y;
-		multiplier = 10*forceScale/(0.5+distSq);
+		multiplier = 10*forceScale/(0.5+distSq/distsqScale);
 		if (!b.countdown && b!=playerBody){	//not a bomb or player (for development convenience)
 			b.ApplyImpulse(new b2Vec2(relativePos.x*multiplier,relativePos.y*multiplier), b.GetWorldCenter());	//upward force
 		}
@@ -1205,3 +1213,4 @@ function printPathsInfo(paths){
 	}
 	console.log("total points: " + totalPoints);
 }
+
