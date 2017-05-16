@@ -3,19 +3,25 @@ var keyThing = (function myKeysStatesThing(){
 	var keyStates=[];
 	var keydownCallbackFunctions=[];
 	
-	document.addEventListener("keydown", function(evt){
+	document.addEventListener("keydown", function(evt){	
+		console.log(evt);
+		//console.log("keydown!!!" + evt.keyCode + " " + evt.key + " " + k);
 		evt.preventDefault();
-		var k = evt.keyCode;
+		//var k = evt.keyCode;
+		var k = (evt.keyCode==0)?evt.key:evt.keyCode;	//to handle edge wierdness with dispatched events
+		console.log(k);
 		keyStates[k]=true;
 		if (keydownCallbackFunctions[k]){keydownCallbackFunctions[k]();}
 	});
 	document.addEventListener("keyup", function(evt){
+		//var k = evt.keyCode;
+		var k = (evt.keyCode==0)?evt.key:evt.keyCode;
 		evt.preventDefault();
-		keyStates[evt.keyCode]=false;
+		keyStates[k]=false;
 	});
 
 	//all keys switch off when lose focus - effectively this is releasing keys
-	window.onblur = function(){
+	document.onblur = function(){
 		console.log("detected lost focus. setting all keystates to false");
 		Object.keys(keyStates).forEach(function(ii){
 			console.log("setting key off : " + ii);
@@ -38,3 +44,10 @@ var keyThing = (function myKeysStatesThing(){
 	};
 })();
 
+//setInterval(function(){triggerKeyboardEvent(document, 32)}, 500); //send fake events. this fails to remedy key stuck on problem in ms edge
+
+//https://stackoverflow.com/questions/961532/firing-a-keyboard-event-in-javascript
+function triggerKeyboardEvent(el, keyCode){
+	var event = new KeyboardEvent("keydown", { key: keyCode });
+	el.dispatchEvent(event); 
+}
