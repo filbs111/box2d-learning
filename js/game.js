@@ -18,8 +18,6 @@ var willFireGun=false;
 var autofireCountdown=0;
 
 
-//var destroy_list = [];
-
 var floatingPlatform;
 
 var landscapeBlocks=[];
@@ -75,6 +73,7 @@ function aspectFitCanvas(evt) {
     drawingScale = (SCALE/25)*15*canvas.scale;
 }		  
 
+var worker = new Worker('js/worker.js');
 var isPlaying=true;		  
 function start(){	
 	stats = new Stats();
@@ -89,7 +88,7 @@ function start(){
     ctx = canvas.getContext("2d");
 	aspectFitCanvas();
 	
-	init();
+	init(); 
 	keyThing.setKeydownCallback(32,function(){			//32=space key
 		playerBody.ApplyForce(new b2Vec2(0,-100*forceScale), playerBody.GetWorldCenter());	//upward force
 	});
@@ -107,9 +106,14 @@ function start(){
 		console.log("isPlaying : " + isPlaying);
 	});
 	
+	worker.onmessage=function(e){
+		console.log("received message from worker : " + e.data);
+	}
+	
 	assetManager.setOnloadFunc(function(){
 		currentTime = (new Date()).getTime();
 		requestAnimationFrame(update);
+		worker.postMessage("please start!");
 	});
 	assetManager.setAssetsToPreload({
 		EXPL: settings.EXPLOSION_IMAGE_SRC
