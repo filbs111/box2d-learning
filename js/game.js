@@ -51,7 +51,7 @@ function aspectFitCanvas(evt) {
     drawingScale = (SCALE/25)*15*canvas.scale;
 }		  
 
-var worker = new Worker('js/worker.js');
+//var worker = new Worker('js/worker.js');
 var isPlaying=true;		  
 function start(){	
 	stats = new Stats();
@@ -83,15 +83,15 @@ function start(){
 		isPlaying = !isPlaying;
 		console.log("isPlaying : " + isPlaying);
 	});
-	
+	/*
 	worker.onmessage=function(e){
 		console.log("received message from worker : " + e.data);
 	}
-	
+	*/
 	assetManager.setOnloadFunc(function(){
 		currentTime = (new Date()).getTime();
 		requestAnimationFrame(update);
-		worker.postMessage("please start!");
+		//worker.postMessage("please start!");
 	});
 	assetManager.setAssetsToPreload({
 		EXPL: settings.EXPLOSION_IMAGE_SRC
