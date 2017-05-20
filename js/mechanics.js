@@ -207,7 +207,7 @@ function init(){
 	   
 		//create some objects
 		bodyDef.type = b2Body.b2_dynamicBody;
-		for(var i = 0; i < 100; ++i) {
+		for(var i = 0; i < 10; ++i) {
 			if(Math.random() > 0.5) {
 			fixDef.shape = new b2PolygonShape;
             fixDef.shape.SetAsBox(
@@ -236,11 +236,11 @@ function init(){
 		fixDef.shape = new b2PolygonShape;
 		fixDef.shape.SetAsArray(vecpoints, vecpoints.length);
 		fixDef.filter.categoryBits=2;
-		fixDef.filter.maskBits=3;	//collide with 1,2
+		fixDef.filter.maskBits=11;	//collide with categorys 0,1,3 (11= 1+2+8)
 		bodyDef.position.x = -6250/SCALE;
 		bodyDef.position.y = -5000/SCALE;
 		playerBody = world.CreateBody(bodyDef);
-		playerBody.CreateFixture(fixDef);
+		playerFixture=playerBody.CreateFixture(fixDef);
 		playerBody.SetAngularDamping(10);
 		playerBody.SetAngle(Math.PI);
 		

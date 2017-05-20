@@ -4,12 +4,12 @@ var keyThing = (function myKeysStatesThing(){
 	var keydownCallbackFunctions=[];
 	
 	document.addEventListener("keydown", function(evt){	
-		console.log(evt);
+		//console.log(evt);
 		//console.log("keydown!!!" + evt.keyCode + " " + evt.key + " " + k);
 		evt.preventDefault();
 		//var k = evt.keyCode;
 		var k = (evt.keyCode==0)?evt.key:evt.keyCode;	//to handle edge wierdness with dispatched events
-		console.log(k);
+		//console.log(k);
 		keyStates[k]=true;
 		if (keydownCallbackFunctions[k]){keydownCallbackFunctions[k]();}
 	});

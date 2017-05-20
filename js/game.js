@@ -11,6 +11,7 @@ var timeStep = 1000/mechanicsFps;
 var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
 var maxUpdatesPerFrame = 3;
 var playerBody;
+var playerFixture;
 var willFireGun=false;
 var autofireCountdown=0;
 
@@ -51,12 +52,22 @@ function aspectFitCanvas(evt) {
     drawingScale = (SCALE/25)*15*canvas.scale;
 }		  
 
+var guiParams={
+	tunneling:false
+}
+
 //var worker = new Worker('js/worker.js');
 var isPlaying=true;		  
 function start(){	
 	stats = new Stats();
 	stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
 	document.body.appendChild( stats.dom );
+	
+	var gui = new dat.GUI();
+	gui.add(guiParams, 'tunneling').onChange(function(val){
+		console.log("switched tunneling : " + val);
+		switchTunneling(val);
+		});
 	
 	debugCanvas = document.getElementById("b2dCanvas");
     debugCtx = debugCanvas.getContext("2d");
@@ -401,12 +412,11 @@ ctx.fillStyle=grd;
 				context.closePath();
 			}
 		}
-		context.fillStyle="rgba(150, 150, 125, 0.85)";
 		
 		var grd=ctx.createLinearGradient( 0 ,b.bounds.top*drawingScale/SCALE, 0,b.bounds.bottom*drawingScale/SCALE);
-		grd.addColorStop(0,"#eee");
-		grd.addColorStop(0.1,"#bbb");
-		grd.addColorStop(0.95,"#bbb");
+		grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
+		grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
+		grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");
 		
 		context.fillStyle=grd;
 		
@@ -557,7 +567,7 @@ var bombfixDef = new b2FixtureDef;
        bombfixDef.restitution = 0.2;	   
 	   
 	   bombfixDef.filter.categoryBits=4;
-	   bombfixDef.filter.maskBits=1;	//collide with 1 only
+	   bombfixDef.filter.maskBits=9;	//collide with 0,3 (9=1+8)
 	   
 bombfixDef.shape = new b2CircleShape(
 			0.1*relativeScale //radius
@@ -571,9 +581,9 @@ function dropBomb(){
   //var speeds = [{fwd:15,left:0}, {fwd:10,left:5}, {fwd:10,left:-5}];	//triple shot
   
   //random spray for stress test
-  for (var ii=0;ii<5;ii++){
-	  speeds.push({fwd:gaussRand()*10*relativeScale,left:gaussRand()*10*relativeScale});
-  }
+  //for (var ii=0;ii<5;ii++){
+//	  speeds.push({fwd:gaussRand()*10*relativeScale,left:gaussRand()*10*relativeScale});
+ // }
   
   var fwd = playerBody.GetTransform().R.col2;
   var left = playerBody.GetTransform().R.col1;
@@ -662,6 +672,13 @@ function checkContactUnderPlayer(c){
 	return true;
 }
 
+function switchTunneling(tunneling){
+	var filter = playerFixture.GetFilterData();
+	filter.maskBits = tunneling?3:11;
+    playerFixture.SetFilterData(filter);
+	playerBody.SetAwake();
+}
+
 function purgeLandscapeFixtures(body){	
 	if (body.shouldBeDestroyed){
 		console.log("this body should have been destroyed");	//possibly should ensure don't call function for "destroyed" bodies
@@ -701,6 +718,7 @@ function updateLandscapeFixtures(body){
     fixDef.friction = 0.5;
     fixDef.restitution = 0.2; 
 	fixDef.shape = new b2PolygonShape;
+	fixDef.filter.categoryBits=8;	//its own category.
 	
 	var oldFixtures= body.existingFixtures || {};	//TODO remove || {} by creating this elsewhere
 	
