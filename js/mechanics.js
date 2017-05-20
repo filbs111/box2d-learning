@@ -1,7 +1,3 @@
-var world;
-var bC;
-var waterLevel = -35;
-
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 		, b2Mat22 = Box2D.Common.Math.b2Mat22
@@ -30,6 +26,10 @@ var torqueScale = relativeScale*forceScale;	//not sure why - mass goes as square
 												//so expected power 3. possibly this is what determines steady turn speed, and really
 												//should be altering angular damping too.
 var thrustForce=15*forceScale;
+
+var world;
+var bC;
+var waterLevel = -875/SCALE;
 
 
 
