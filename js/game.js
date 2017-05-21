@@ -53,7 +53,8 @@ function aspectFitCanvas(evt) {
 }		  
 
 var guiParams={
-	tunneling:false
+	tunneling:false,
+	drill:true
 }
 
 //var worker = new Worker('js/worker.js');
@@ -68,6 +69,7 @@ function start(){
 		console.log("switched tunneling : " + val);
 		switchTunneling(val);
 		});
+	gui.add(guiParams, 'drill')
 	
 	debugCanvas = document.getElementById("b2dCanvas");
     debugCtx = debugCanvas.getContext("2d");
@@ -168,6 +170,16 @@ function update(timeNow) {
 	   var fwd = playerBody.GetTransform().R.col2;
 	   if (thrust!=0){
 		   playerBody.ApplyForce(new b2Vec2(thrust*fwd.x,thrust*fwd.y), playerBody.GetWorldCenter());
+		   
+		   if (guiParams.drill){
+			   //eat landscape in front of player.
+				var bodyPos = playerBody.GetTransform().position;
+				var fwd = playerBody.GetTransform().R.col2;
+				var noseDisplacement = 0.2;
+				var nosePos = {x:bodyPos.x + noseDisplacement*fwd.x ,
+						y:bodyPos.y + noseDisplacement*fwd.y };
+			editLandscapeFixtureBlocks(nosePos.x *SCALE,nosePos.y *SCALE,25);
+		   }
 	   }
 	   //air resistance
 	   var dragVec = playerBody.GetLinearVelocity().Copy();
@@ -177,8 +189,7 @@ function update(timeNow) {
 	   playerBody.ApplyForce(dragVec, playerBody.GetWorldCenter());
 	   //playerBody.ApplyForce(randomDrag, playerBody.GetWorldCenter());
 
-	   
-	   
+	
 	   //cam lookahead
 	   /*
 	   var scaledPVel = playerBody.GetLinearVelocity().Copy();
