@@ -4,32 +4,16 @@ var canvas;
 var ctx;
 var stats;
 
-var initscount=0;
 var currentTime;
 var mechanicsFps = 30;
 var timeStep = 1000/mechanicsFps;
 var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
 var maxUpdatesPerFrame = 3;
-var playerBody;
-var playerBodies=[];	//multiple for worm
-var playerJoints=[];
-var playerFixture;
+
 var willFireGun=false;
 var autofireCountdown=0;
 
 
-var floatingPlatform;
-
-var landscapeBlocks=[];
-var scheduledBlocksToUpdate=[];
-var scheduledBlocksToPurge=[[],[]];
-
-var camTargetPos = new b2Vec2(0,0);
-var camPos = new b2Vec2(0,0);
-var camVel = new b2Vec2(0,0);
-var camPosInterp = new b2Vec2(0,0);
-var camLookAhead = new b2Vec2(0,0);
-		
 window.onresize = aspectFitCanvas;		
 
 function aspectFitCanvas(evt) {
@@ -60,7 +44,7 @@ var guiParams={
 	torqueAllSegs:false
 }
 
-//var worker = new Worker('js/worker.js');
+var worker = new Worker('js/worker.js');
 var isPlaying=true;		  
 function start(){	
 	stats = new Stats();
@@ -100,15 +84,15 @@ function start(){
 		isPlaying = !isPlaying;
 		console.log("isPlaying : " + isPlaying);
 	});
-	/*
+	
 	worker.onmessage=function(e){
 		console.log("received message from worker : " + e.data);
 	}
-	*/
+	
 	assetManager.setOnloadFunc(function(){
 		currentTime = (new Date()).getTime();
 		requestAnimationFrame(update);
-		//worker.postMessage("please start!");
+		worker.postMessage("please start!");
 	});
 	assetManager.setAssetsToPreload({
 		EXPL: settings.EXPLOSION_IMAGE_SRC

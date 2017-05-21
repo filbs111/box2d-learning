@@ -16,6 +16,25 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
 	    , b2BuoyancyController = Box2D.Dynamics.Controllers.b2BuoyancyController
           ;
 
+var playerBody;
+var playerBodies=[];	//multiple for worm
+var playerJoints=[];
+var playerFixture;
+
+var floatingPlatform;
+
+var landscapeBlocks=[];
+var scheduledBlocksToUpdate=[];
+var scheduledBlocksToPurge=[[],[]];
+
+
+
+var camTargetPos = new b2Vec2(0,0);
+var camPos = new b2Vec2(0,0);
+var camVel = new b2Vec2(0,0);
+var camPosInterp = new b2Vec2(0,0);
+var camLookAhead = new b2Vec2(0,0);
+
 
 var cpr = new ClipperLib.Clipper();
 
@@ -226,7 +245,10 @@ function init(){
         }
 	   
 	    //add a player triangle object
-		var points = [ [-0.5,-0.35], [0.5, -0.35], [0, 0.7]];
+		var points = [  [-0.5,-0.35],
+			//[-0.5,-1],[0.5,-1],	//long back
+		[0.5, -0.35], [0, 0.7]];
+
 		var vecpoints = [];
 		for (var i = 0; i < points.length; i++) {
 			var vec = new b2Vec2();
@@ -249,7 +271,7 @@ function init(){
 		//create a fixture that joins the player and caravan objects
 		var spacing = 0.3;
 		var wormAngleLimit = 0.5;
-		var numwormjoints = 8;
+		var numwormjoints = 0;
 		var revoluteJointDef = new b2RevoluteJointDef();
 		
 		var jointa = playerBody;
