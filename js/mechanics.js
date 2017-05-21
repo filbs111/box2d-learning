@@ -5,6 +5,7 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
         , b2Body = Box2D.Dynamics.b2Body
         , b2FixtureDef = Box2D.Dynamics.b2FixtureDef
         , b2Fixture = Box2D.Dynamics.b2Fixture
+		, b2RevoluteJointDef = Box2D.Dynamics.Joints.b2RevoluteJointDef
         , b2World = Box2D.Dynamics.b2World
 		, b2WorldManifold = Box2D.Collision.b2WorldManifold
         , b2MassData = Box2D.Collision.Shapes.b2MassData
@@ -238,11 +239,28 @@ function init(){
 		fixDef.filter.categoryBits=2;
 		fixDef.filter.maskBits=11;	//collide with categorys 0,1,3 (11= 1+2+8)
 		bodyDef.position.x = -6250/SCALE;
-		bodyDef.position.y = -5000/SCALE;
+		bodyDef.position.y = -5500/SCALE;
 		playerBody = world.CreateBody(bodyDef);
 		playerFixture=playerBody.CreateFixture(fixDef);
 		playerBody.SetAngularDamping(10);
 		playerBody.SetAngle(Math.PI);
+		
+		//add a "caravan" to player, with view to making a worm
+		var caravanBody = world.CreateBody(bodyDef);
+		var caravanFixture=caravanBody.CreateFixture(fixDef);
+		caravanBody.SetAngularDamping(10);
+		caravanBody.SetAngle(Math.PI);
+		
+		//create a fixture that joins the player and caravan objects
+		var spacing = 0.3;
+		var revoluteJointDef = new b2RevoluteJointDef();
+		revoluteJointDef.bodyA = playerBody;
+		revoluteJointDef.bodyB = caravanBody;
+		revoluteJointDef.collideConnected = false;
+		revoluteJointDef.localAnchorA.Set(0,0);
+		revoluteJointDef.localAnchorB.Set(0,spacing);
+		var caravanJoint = world.CreateJoint(revoluteJointDef);
+		
 		
 		var collisionListener = new Box2D.Dynamics.b2ContactListener();
 		collisionListener.BeginContact = function(contact){
