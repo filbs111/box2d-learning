@@ -350,6 +350,33 @@ function chopIntoGrid(landsPath){
 	return outputArray;
 }
 
+function tagLandscapeBlocksNearPlayer(){
+	//quick hack - go through all landscape blocks and set a bool param to store whether 
+	//they might be colliding with the player. this is super inefficient. doing same thing
+	//in explosion cutting IIRC
+	//TODO generalised method to quickly get a list of blocks for input bounds.
+	
+	//var bounds = playerBody.bounds;	//this doesn't exist. might be a proper way to get an AABB, but
+	var pos = playerBody.GetTransform().position;
+	var playerRad=1;	//guess
+	var bounds = { left: (pos.x - playerRad)*SCALE,
+					right: (pos.x + playerRad)*SCALE,
+					bottom: (pos.y + playerRad)*SCALE,
+					top: (pos.y - playerRad)*SCALE
+		};
+
+	
+	for (bb in landscapeBlocks){
+		var thisBlock = landscapeBlocks[bb];
+		var blockBounds = thisBlock.bounds;
+		if (blockBounds.left>bounds.right || blockBounds.top>bounds.bottom || blockBounds.right<bounds.left || blockBounds.bottom<bounds.top){
+			thisBlock.mightCollide=false;
+		}else{
+			thisBlock.mightCollide=true;
+		}
+	}
+}
+
 	
 function printPathsInfo(paths){
 	var numLoops = paths.length;
@@ -369,4 +396,184 @@ function printPathsInfo(paths){
 		//console.log("a loop with num points =" + numPoints);
 	}
 	console.log("total points: " + totalPoints);
+}
+
+
+
+
+
+
+function purgeLandscapeFixtures(body){	
+	if (body.shouldBeDestroyed){
+		console.log("this body should have been destroyed");	//possibly should ensure don't call function for "destroyed" bodies
+		return -2;												//maybe box2d doesn't actually destroy the object, just removes it from the world
+	}	
+	var newPurgeList =[];
+	for (var f = body.GetFixtureList(); f != null; f = f.GetNext()) {
+		if (f.purgePls){
+			f.purgePls--;
+			if (f.purgePls<=0){
+				if (f.wasPurged){
+					alert("double delete attempt!!");
+				}else{
+					newPurgeList.push(f);
+					f.wasPurged = true;
+				}
+			}
+		}
+	}
+	for (var ii in newPurgeList){
+		var f = newPurgeList[ii];
+		body.DestroyFixture(f);
+	}
+	//destroy the body if all fixtures are gone
+	if (body.GetFixtureList()==null){
+		console.log("all fixtures gone. destroying body.");
+		body.shouldBeDestroyed=true;
+		world.DestroyBody(body);
+		return -1;
+	}
+}
+
+function updateLandscapeFixtures(body){
+	
+	var fixDef = new b2FixtureDef;
+    fixDef.density = 1.0;
+    fixDef.friction = 0.5;
+    fixDef.restitution = 0.2; 
+	fixDef.shape = new b2PolygonShape;
+	fixDef.filter.categoryBits=8;	//its own category.
+	
+	var oldFixtures= body.existingFixtures || {};	//TODO remove || {} by creating this elsewhere
+	
+	//console.log("old fixtures: " + Object.keys(oldFixtures).length);
+	
+	var newFixtureList={};	//all output features not on purge list
+	
+	var cPath = body.clippablePath;
+	var numLoops = cPath.length;
+	var numPoints;
+	if (numLoops==0){
+		console.log("no loops in clippable path. this is unexpected 111");
+	//	return;
+	}
+	var thisLoop, currentPos, nextPos;
+	for (var ii=0;ii<numLoops;ii++){
+		thisLoop = cPath[ii];
+		numPoints = thisLoop.length;
+		//console.log("a loop with num points =" + numPoints);
+		currentPos = thisLoop[numPoints-1];
+		for (var jj=0;jj<numPoints;jj++){
+			nextPos = thisLoop[jj];
+			var stringKey = JSON.stringify([currentPos.X, currentPos.Y, nextPos.X, nextPos.Y]);
+			if (newFixtureList[stringKey]){alert("assumption false!!!!");}
+			newFixtureList[stringKey] = true;
+			currentPos = nextPos;
+		}
+	}
+	
+	for (var fix in oldFixtures){
+		if (!newFixtureList[fix]){
+			oldFixtures[fix].purgePls=2;
+		}
+	}
+
+	var toMakeList=[];
+	for (var fix in newFixtureList){
+		if (oldFixtures[fix]){
+			newFixtureList[fix]=oldFixtures[fix];
+			//console.log("already exists. reusing...");
+		}else{
+			toMakeList.push(fix);
+		}
+	}
+	
+	//var createdCount=0;
+	var parsedFix;
+	var fix;
+	for (var ii in toMakeList){
+		fix=toMakeList[ii];
+		parsedFix = JSON.parse(fix);
+		fixDef.shape.SetAsEdge(new b2Vec2(parsedFix[0] / SCALE, parsedFix[1] / SCALE), new b2Vec2(parsedFix[2] / SCALE, parsedFix[3] / SCALE));
+		newFixtureList[fix]=body.CreateFixture(fixDef);
+	//	createdCount++;
+	}
+	//if (createdCount!=0){console.log("created " + createdCount + " fixtures");}
+	
+	body.existingFixtures = newFixtureList;
+}
+
+//var cpr;
+//var shouldClean=false;
+
+function editLandscapeFixtureBlocks(x,y,r){
+	//naively just do all of them
+	for (bb in landscapeBlocks){
+		var thisBlock = landscapeBlocks[bb];
+		editLandscapeFixture(thisBlock,x,y,r);
+	}
+}
+
+function editLandscapeFixture(body,x,y,r){
+	
+	//confirm is within bounds of block
+	//TODO use the grid systme directly
+	var bounds = body.bounds;
+	if (x-r>bounds.right || y-r>bounds.bottom || x+r<bounds.left || y+r<bounds.top){
+		return;
+	}
+	
+	
+	//temporary test - make a fixed edit to landscape
+	cpr.Clear();
+	cpr.AddPaths(body.clippablePath, ClipperLib.PolyType.ptSubject, true);  //use the previous solution as input
+
+	//var cutPath = [{X:x-r,Y:y-r},{X:x-r,Y:y+r},{X:x+r,Y:y+r},{X:x+r,Y:y-r}]; //square
+	var cutPath=[];	//circle. todo precalculate
+	for(var aa=0;aa<10;aa++){
+		var ang = aa*Math.PI/5;
+		cutPath.push({X:x+r*Math.cos(ang), Y:y+r*Math.sin(ang)});
+	}
+	
+	cpr.AddPath(cutPath, ClipperLib.PolyType.ptClip, true);
+
+	var succeeded = cpr.Execute(ClipperLib.ClipType.ctDifference, body.clippablePath, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+
+	//custom clean function - only remove a point if both the previous and next points are within a range limit
+	//currently inefficient
+	
+	var resultPath=[]; //possibly faster to edit existing path
+	rangeLimitSq = 120;
+	var paths = body.clippablePath;
+	for (pp in paths){
+		var thisResultPath=[];
+		var thisPath = paths[pp];
+		var numPoints = thisPath.length;
+		
+		for (var ii=0;ii<numPoints;ii++){
+			var prevPoint = thisPath[(ii+numPoints-1)%numPoints];
+			var thisPoint = thisPath[(ii+numPoints)%numPoints];
+			var nextPoint = thisPath[(ii+numPoints+1)%numPoints];
+			var prevDSq = Math.pow(prevPoint.X-thisPoint.X,2) + Math.pow(prevPoint.Y-thisPoint.Y,2);
+			var thisDSq = Math.pow(thisPoint.X-nextPoint.X,2) + Math.pow(thisPoint.Y-nextPoint.Y,2);
+			if (prevDSq>rangeLimitSq || thisDSq>rangeLimitSq){
+				thisResultPath.push(thisPoint);
+			}else{
+				//console.log("removing a point");
+			}
+		}
+		if (thisResultPath.length>2){
+			resultPath.push(thisResultPath);
+		}else{
+			console.log("***************************** too short path (" + thisResultPath.length + ")*********************");
+		}
+	}
+	body.clippablePath = resultPath;
+	
+	
+	if (scheduledBlocksToUpdate.indexOf(body)==-1){
+		scheduledBlocksToUpdate.push(body);
+	//}else{
+	//	console.log("tried to push array to update twice. index : " + scheduledBlocksToUpdate.indexOf(body) );
+	}
 }
