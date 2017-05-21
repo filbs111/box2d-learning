@@ -11,6 +11,7 @@ var timeStep = 1000/mechanicsFps;
 var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
 var maxUpdatesPerFrame = 3;
 var playerBody;
+var playerBodies=[];	//multiple for worm
 var playerFixture;
 var willFireGun=false;
 var autofireCountdown=0;
@@ -169,7 +170,12 @@ function update(timeNow) {
 	   //console.log(thrust);
 	   var fwd = playerBody.GetTransform().R.col2;
 	   if (thrust!=0){
-		   playerBody.ApplyForce(new b2Vec2(thrust*fwd.x,thrust*fwd.y), playerBody.GetWorldCenter());
+		   //apply thrust to all parts of worm
+		   for (var bb in playerBodies){
+			   var thisBody = playerBodies[bb];
+			   var thisFwd = thisBody.GetTransform().R.col2;
+			   thisBody.ApplyForce(new b2Vec2(thrust*thisFwd.x,thrust*thisFwd.y), thisBody.GetWorldCenter());
+		   }
 		   
 		   if (guiParams.drill){
 			   //eat landscape in front of player.
@@ -178,7 +184,7 @@ function update(timeNow) {
 				var noseDisplacement = 0.2;
 				var nosePos = {x:bodyPos.x + noseDisplacement*fwd.x ,
 						y:bodyPos.y + noseDisplacement*fwd.y };
-			editLandscapeFixtureBlocks(nosePos.x *SCALE,nosePos.y *SCALE,25);
+			editLandscapeFixtureBlocks(nosePos.x *SCALE,nosePos.y *SCALE,20);
 		   }
 	   }
 	   //air resistance

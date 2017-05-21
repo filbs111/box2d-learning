@@ -245,8 +245,11 @@ function init(){
 		playerBody.SetAngularDamping(10);
 		playerBody.SetAngle(Math.PI);
 		
+		playerBodies.push(playerBody);
+		
 		//create a fixture that joins the player and caravan objects
 		var spacing = 0.3;
+		var wormAngleLimit = 0.5;
 		var numwormjoints = 8;
 		var revoluteJointDef = new b2RevoluteJointDef();
 		
@@ -254,8 +257,8 @@ function init(){
 		revoluteJointDef.bodyA = playerBody;
 		revoluteJointDef.bodyB = playerBody;
 		revoluteJointDef.enableLimit = true;	//todo add restoring force
-		revoluteJointDef.lowerAngle = -0.4;
-		revoluteJointDef.upperAngle =  0.4;
+		revoluteJointDef.lowerAngle = -wormAngleLimit;
+		revoluteJointDef.upperAngle =  wormAngleLimit;
 		var caravanBody, caravanFixture;
 		for (var jj=0;jj<numwormjoints;jj++){
 			//add a "caravan" to player, with view to making a worm
@@ -263,7 +266,8 @@ function init(){
 			caravanFixture=caravanBody.CreateFixture(fixDef);
 			caravanBody.SetAngularDamping(10);
 			caravanBody.SetAngle(Math.PI);
-			
+			playerBodies.push(caravanBody);
+
 			revoluteJointDef.bodyB = caravanBody;
 			
 			revoluteJointDef.collideConnected = false;
