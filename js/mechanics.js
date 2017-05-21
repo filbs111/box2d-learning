@@ -228,7 +228,6 @@ function init(){
 	    //add a player triangle object
 		var points = [ [-0.5,-0.35], [0.5, -0.35], [0, 0.7]];
 		var vecpoints = [];
-
 		for (var i = 0; i < points.length; i++) {
 			var vec = new b2Vec2();
 			vec.Set(points[i][0]*(25/SCALE), points[i][1]*(25/SCALE));
@@ -260,6 +259,18 @@ function init(){
 		revoluteJointDef.lowerAngle = -wormAngleLimit;
 		revoluteJointDef.upperAngle =  wormAngleLimit;
 		var caravanBody, caravanFixture;
+		
+		//use different shape for body segments
+		points = [ [-0.5,-0.5], [0,-1.0], [0.5, -0.5], [0.5,0.5], [0,1.0], [-0.5, 0.5]];
+		var vecpoints = [];
+		for (var i = 0; i < points.length; i++) {
+			var vec = new b2Vec2();
+			vec.Set(points[i][0]*(25/SCALE), points[i][1]*(25/SCALE));
+			vecpoints[i] = vec;
+		}
+		fixDef.shape = new b2PolygonShape;
+		fixDef.shape.SetAsArray(vecpoints, vecpoints.length);
+		
 		for (var jj=0;jj<numwormjoints;jj++){
 			//add a "caravan" to player, with view to making a worm
 			caravanBody = world.CreateBody(bodyDef);
@@ -271,9 +282,9 @@ function init(){
 			revoluteJointDef.bodyB = caravanBody;
 			
 			revoluteJointDef.collideConnected = false;
-			revoluteJointDef.localAnchorA.Set(0,0);
-			revoluteJointDef.localAnchorB.Set(0,spacing);
-			world.CreateJoint(revoluteJointDef);
+			revoluteJointDef.localAnchorA.Set(0,-spacing/2);
+			revoluteJointDef.localAnchorB.Set(0,spacing/2);
+			playerJoints.push(world.CreateJoint(revoluteJointDef));
 			
 			revoluteJointDef.bodyA = revoluteJointDef.bodyB;
 		}
