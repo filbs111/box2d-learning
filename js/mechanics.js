@@ -26,7 +26,7 @@ var forceScale = relativeScale*distsqScale;	//change world by scale - F=ma. mass
 var torqueScale = relativeScale*forceScale;	//not sure why - mass goes as square, avg distance from centre goes as linear,
 												//so expected power 3. possibly this is what determines steady turn speed, and really
 												//should be altering angular damping too.
-var thrustForce=15*forceScale;
+var thrustForce=40*forceScale;
 
 var world;
 var bC;
@@ -239,27 +239,40 @@ function init(){
 		fixDef.filter.categoryBits=2;
 		fixDef.filter.maskBits=11;	//collide with categorys 0,1,3 (11= 1+2+8)
 		bodyDef.position.x = -6250/SCALE;
-		bodyDef.position.y = -5500/SCALE;
+		bodyDef.position.y = -5600/SCALE;
 		playerBody = world.CreateBody(bodyDef);
 		playerFixture=playerBody.CreateFixture(fixDef);
 		playerBody.SetAngularDamping(10);
 		playerBody.SetAngle(Math.PI);
 		
-		//add a "caravan" to player, with view to making a worm
-		var caravanBody = world.CreateBody(bodyDef);
-		var caravanFixture=caravanBody.CreateFixture(fixDef);
-		caravanBody.SetAngularDamping(10);
-		caravanBody.SetAngle(Math.PI);
-		
 		//create a fixture that joins the player and caravan objects
 		var spacing = 0.3;
+		var numwormjoints = 8;
 		var revoluteJointDef = new b2RevoluteJointDef();
+		
+		var jointa = playerBody;
 		revoluteJointDef.bodyA = playerBody;
-		revoluteJointDef.bodyB = caravanBody;
-		revoluteJointDef.collideConnected = false;
-		revoluteJointDef.localAnchorA.Set(0,0);
-		revoluteJointDef.localAnchorB.Set(0,spacing);
-		var caravanJoint = world.CreateJoint(revoluteJointDef);
+		revoluteJointDef.bodyB = playerBody;
+		revoluteJointDef.enableLimit = true;	//todo add restoring force
+		revoluteJointDef.lowerAngle = -0.4;
+		revoluteJointDef.upperAngle =  0.4;
+		var caravanBody, caravanFixture;
+		for (var jj=0;jj<numwormjoints;jj++){
+			//add a "caravan" to player, with view to making a worm
+			caravanBody = world.CreateBody(bodyDef);
+			caravanFixture=caravanBody.CreateFixture(fixDef);
+			caravanBody.SetAngularDamping(10);
+			caravanBody.SetAngle(Math.PI);
+			
+			revoluteJointDef.bodyB = caravanBody;
+			
+			revoluteJointDef.collideConnected = false;
+			revoluteJointDef.localAnchorA.Set(0,0);
+			revoluteJointDef.localAnchorB.Set(0,spacing);
+			world.CreateJoint(revoluteJointDef);
+			
+			revoluteJointDef.bodyA = revoluteJointDef.bodyB;
+		}
 		
 		
 		var collisionListener = new Box2D.Dynamics.b2ContactListener();
