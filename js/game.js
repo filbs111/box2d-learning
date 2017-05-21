@@ -12,6 +12,7 @@ var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
 var maxUpdatesPerFrame = 3;
 var playerBody;
 var playerBodies=[];	//multiple for worm
+var playerJoints=[];
 var playerFixture;
 var willFireGun=false;
 var autofireCountdown=0;
@@ -55,7 +56,8 @@ function aspectFitCanvas(evt) {
 
 var guiParams={
 	tunneling:false,
-	drill:true
+	drill:true,
+	torqueAllSegs:false
 }
 
 //var worker = new Worker('js/worker.js');
@@ -70,7 +72,8 @@ function start(){
 		console.log("switched tunneling : " + val);
 		switchTunneling(val);
 		});
-	gui.add(guiParams, 'drill')
+	gui.add(guiParams, 'drill');
+	gui.add(guiParams, 'torqueAllSegs');
 	
 	debugCanvas = document.getElementById("b2dCanvas");
     debugCtx = debugCanvas.getContext("2d");
@@ -164,7 +167,14 @@ function update(timeNow) {
 	   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
 	   var turn = keyThing.rightKey() - keyThing.leftKey();
 	   if (turn!=0){
-		   playerBody.ApplyTorque(6*turn*torqueScale);
+		   if (guiParams.torqueAllSegs){
+		   for (var bb in playerBodies){
+			   var thisBody = playerBodies[bb];
+			   thisBody.ApplyTorque(6*turn*torqueScale);	//TODO apply torque to joints?
+		   }
+		   }else{
+			   playerBody.ApplyTorque(6*turn*torqueScale);	//TODO apply torque to joints?
+		   }
 	   }
 	   var thrust = thrustForce*keyThing.upKey();
 	   //console.log(thrust);
