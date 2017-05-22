@@ -74,9 +74,6 @@ function start(){
 	keyThing.setKeydownCallback(70,function(){			//70=F
 		goFullscreen(canvas);
 	});
-	keyThing.setKeydownCallback(66,function(){			//66=B
-		willFireGun=true;
-	});
 	keyThing.setKeydownCallback(80,function(){			//80=P
 		isPlaying = !isPlaying;
 		console.log("isPlaying : " + isPlaying);
@@ -333,23 +330,15 @@ function calcInterpPositions(remainderFraction){
 
 var drawingScale;
 var skipLandsDraw=false;
-var skipLandsClip=true;
 
 function draw_world(world, context, remainderFraction) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
-//  context.fillStyle= "#AAFFFF";
   
   var grd=ctx.createLinearGradient(0,0,0,canvas.height);
-grd.addColorStop(0,"magenta");
-grd.addColorStop(1,"orange");
-
-ctx.fillStyle=grd;
-  
+  grd.addColorStop(0,"magenta");
+  grd.addColorStop(1,"orange");
+  ctx.fillStyle=grd;
   context.fillRect(0, 0, canvas.width, canvas.height);	//so "lighter" globalCompositeOperation has something to start from
-  
-  //var camPos = {x:playerBody.interpPos.x + camLookAhead.x,
-	//			y:playerBody.interpPos.y + camLookAhead.y, 			
-  //};	//TODO also interpolate velocity
   
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosInterp.x, canvas.height/2-drawingScale*camPosInterp.y);
   context.fillStyle="#AAAAAA";
@@ -571,110 +560,6 @@ function goFullscreen(elem){
 	} else if (elem.msRequestFullscreen) {
 		elem.msRequestFullscreen();
 	}
-}
-
-var bombDef = new b2BodyDef;
-bombDef.type = b2Body.b2_dynamicBody;
-  
-var bombfixDef = new b2FixtureDef;
-       bombfixDef.density = 1.0;
-       bombfixDef.friction = 0.5;
-       bombfixDef.restitution = 0.2;	   
-	   
-	   bombfixDef.filter.categoryBits=4;
-	   bombfixDef.filter.maskBits=9;	//collide with 0,3 (9=1+8)
-	   
-bombfixDef.shape = new b2CircleShape(
-			0.1*relativeScale //radius
-		 );	  		 
-   
-function dropBomb(){
-  //var speeds = [{fwd:0,left:0}];	//bomb
-  var speeds = [{fwd:20*relativeScale + gaussRand()*2*relativeScale,left:gaussRand()*2*relativeScale}];
-  //var speeds = [{fwd:35,left:0}, {fwd:30,left:5}, {fwd:30,left:-5}];	//triple shot
-  //var speeds = [{fwd:25,left:0}, {fwd:20,left:5}, {fwd:20,left:-5}];	//triple shot
-  //var speeds = [{fwd:15,left:0}, {fwd:10,left:5}, {fwd:10,left:-5}];	//triple shot
-  
-  //random spray for stress test
-  //for (var ii=0;ii<5;ii++){
-//	  speeds.push({fwd:gaussRand()*10*relativeScale,left:gaussRand()*10*relativeScale});
- // }
-  
-  var fwd = playerBody.GetTransform().R.col2;
-  var left = playerBody.GetTransform().R.col1;
-  
-  var playerPosition = playerBody.GetTransform().position;
-  var playerVelocity = playerBody.GetLinearVelocity();
-  
-  bombDef.position.x = playerPosition.x;
-  bombDef.position.y = playerPosition.y;
-  
-  for (ss in speeds){
-	  var speed = speeds[ss];
-	  bombDef.linearVelocity.x=playerVelocity.x + speed.fwd*fwd.x + speed.left*left.x;
-	  bombDef.linearVelocity.y=playerVelocity.y + speed.fwd*fwd.y + speed.left*left.y;
-	  
-	  var bombBody = world.CreateBody(bombDef);  
-	  bombBody.CreateFixture(bombfixDef);
-	  bC.AddBody(bombBody);
-	  bombBody.countdown=100; 
-	  
-	  //bombBody.SetBullet(true);
-  }
-}
-
-function detonateBody(b){
-	var bodyPos = b.GetTransform().position;
-	new Explosion(bodyPos.x, bodyPos.y , 0,0, 2*relativeScale,0.5*relativeTimescale );
-	createBlast(bodyPos);
-	//destroy_list.push(b);
-	b.shouldDestroy=true;
-	editLandscapeFixtureBlocks(bodyPos.x *SCALE,bodyPos.y *SCALE,40);
-	//console.log("destroying bomb at " + bodyPos.x + ", " + bodyPos.y);
-}
-
-function createBlast(position){
-	//if creating multiple blasts at the same time (likely to happen if made basts continuous instead of instantaneous),
-	//iterating over all bodies for each blast probably inefficient
-	var bodyPos, relativePos, distSq, multiplier;
-	for (var b = world.GetBodyList(); b; b = b.GetNext()) {
-		if (b.clippablePath){continue;}
-		bodyPos = b.GetTransform().position;
-		relativePos = {x:bodyPos.x-position.x,
-							y:bodyPos.y-position.y};
-		distSq = relativePos.x*relativePos.x + relativePos.y*relativePos.y;
-		multiplier = 10*forceScale/(0.5+distSq/distsqScale);
-		if (!b.countdown && b!=playerBody){	//not a bomb or player (for development convenience)
-			b.ApplyImpulse(new b2Vec2(relativePos.x*multiplier,relativePos.y*multiplier), b.GetWorldCenter());	//upward force
-		}
-		//TODO impulse dependent on object size
-	}
-	
-}
-
-function checkForFixedRelativePose(body1, body2){
-	//get linear and angular velocity of one body in frame of another.
-	var rotationalVelocityThreshold = body1.GetAngularVelocity() - body2.GetAngularVelocity();
-	if (Math.abs(rotationalVelocityThreshold) > 0.1){return false;}
-	
-	var body1Transform = body1.GetTransform;
-	var body2Transform = body2.GetTransform;
-	var relativeVel = new b2Vec2;
-	relativeVel.Add(body1.GetLinearVelocity());
-	relativeVel.Subtract(body2.GetLinearVelocity());
-	
-	var relativePos = new b2Vec2;
-	relativePos.Add(body1.GetTransform().position);
-	relativePos.Subtract(body2.GetTransform().position);
-	
-	var angVel = body2.GetAngularVelocity();
-	var myMat = b2Mat22.FromVV(new b2Vec2(0,-angVel), new b2Vec2(angVel,0) );
-	relativePos.MulM(myMat);
-	relativeVel.Add(relativePos);
-	
-	if (relativeVel.Length()>0.1){return false;} 
-	
-	return true;
 }
 
 //this stuff will be removed when switched to web worker mechanics.
