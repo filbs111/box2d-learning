@@ -52,10 +52,7 @@ function start(){
 	document.body.appendChild( stats.dom );
 	
 	var gui = new dat.GUI();
-	gui.add(guiParams, 'tunneling').onChange(function(val){
-		console.log("switched tunneling : " + val);
-		switchTunneling(val);
-		});
+	gui.add(guiParams, 'tunneling').onChange(switchTunneling);
 	gui.add(guiParams, 'drill');
 	gui.add(guiParams, 'torqueAllSegs');
 	
@@ -92,7 +89,7 @@ function start(){
 	assetManager.setOnloadFunc(function(){
 		currentTime = (new Date()).getTime();
 		requestAnimationFrame(update);
-		worker.postMessage("please start!");
+		worker.postMessage(JSON.stringify(guiParams));
 	});
 	assetManager.setAssetsToPreload({
 		EXPL: settings.EXPLOSION_IMAGE_SRC
@@ -680,21 +677,11 @@ function checkForFixedRelativePose(body1, body2){
 	return true;
 }
 
-function checkContactUnderPlayer(c){
-	//check that the contact is on the base of the player
-	var myWorldManifold = new b2WorldManifold()
-	c.contact.GetWorldManifold(myWorldManifold);
-	var contactNormal = myWorldManifold.m_normal;
-	contactNormal.MulTM(playerBody.GetTransform().R);
-	if (contactNormal.y>-0.99){return false;}
-	return true;
-}
-
+//this stuff will be removed when switched to web worker mechanics.
 function switchTunneling(tunneling){
 	var filter = playerFixture.GetFilterData();
 	filter.maskBits = tunneling?3:11;
-    playerFixture.SetFilterData(filter);
+	playerFixture.SetFilterData(filter);
 	playerBody.SetAwake();
 }
-
 

@@ -645,3 +645,14 @@ function editLandscapeFixture(body,x,y,r){
 	//	console.log("tried to push array to update twice. index : " + scheduledBlocksToUpdate.indexOf(body) );
 	}
 }
+
+
+function checkContactUnderPlayer(c){
+	//check that the contact is on the base of the player
+	var myWorldManifold = new b2WorldManifold()
+	c.contact.GetWorldManifold(myWorldManifold);
+	var contactNormal = myWorldManifold.m_normal;
+	contactNormal.MulTM(playerBody.GetTransform().R);
+	if (contactNormal.y>-0.99){return false;}
+	return true;
+}
