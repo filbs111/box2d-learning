@@ -6,7 +6,11 @@ importScripts('../lib/clipper.js',
 
 self.onmessage = function(e) {
 	postMessage("received message from main : " + e.data);
-	
+	if (e.data == "init"){
+		console.log("init called in worker");
+		init();
+		return;
+	}
 	applyGuiParamsUpdate(e.data); //TODO recognise different messages.
 };
 

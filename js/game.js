@@ -40,11 +40,11 @@ function aspectFitCanvas(evt) {
 var guiParams={
 	tunneling:false,
 	drill:true,
-	torqueAllSegs:false
+	torqueAllSegs:false,
+	paused:false
 }
 
 var worker = new Worker('js/worker.js');
-var isPlaying=true;		  
 function start(){	
 	stats = new Stats();
 	stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -54,6 +54,7 @@ function start(){
 	gui.add(guiParams, 'tunneling').onChange(switchTunneling);
 	gui.add(guiParams, 'drill');
 	gui.add(guiParams, 'torqueAllSegs');
+	gui.add(guiParams, 'paused');
 	
 	debugCanvas = document.getElementById("b2dCanvas");
     debugCtx = debugCanvas.getContext("2d");
@@ -63,19 +64,13 @@ function start(){
     ctx = canvas.getContext("2d");
 	aspectFitCanvas();
 	
-	init(); 
-	keyThing.setKeydownCallback(32,function(){			//32=space key
-		playerBody.ApplyForce(new b2Vec2(0,-100*forceScale), playerBody.GetWorldCenter());	//upward force
-	});
+	init();
 	keyThing.setKeydownCallback(82,function(){			//82=R
 		init();
+		worker.postMessage("init");
 	});
 	keyThing.setKeydownCallback(70,function(){			//70=F
 		goFullscreen(canvas);
-	});
-	keyThing.setKeydownCallback(80,function(){			//80=P
-		isPlaying = !isPlaying;
-		console.log("isPlaying : " + isPlaying);
 	});
 	
 	worker.onmessage=function(e){
@@ -110,7 +105,7 @@ function update(timeNow) {
    }else{
 	   currentTime+=timeStep*updatesRequired;
    }
-   if (updatesRequired>0 && isPlaying){
+   if (updatesRequired>0 && !guiParams.paused){
 	   if (updatesRequired>1){
 		   for (var ii=1;ii<updatesRequired;ii++){
 			   processInput();
@@ -221,6 +216,11 @@ function update(timeNow) {
 	   
 	   
 	   floatingPlatform.ApplyTorque(5000*keyThing.downKey());
+	   
+	   playerBody.ApplyForce(new b2Vec2(0,-20*forceScale*keyThing.keystate(32)), 
+							playerBody.GetWorldCenter());	//upward force when press space key
+			
+	   
    }
    
 }; // update()
