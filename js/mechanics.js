@@ -761,3 +761,78 @@ function checkForFixedRelativePose(body1, body2){
 	
 	return true;
 }
+
+
+var velIts=8;
+var posIts=3;
+
+function iterateMechanics(){
+	   
+	   for (var e in explosions){
+		  explosions[e].iterate();
+	   }
+	   
+	   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+	      if (b.countdown){
+			 b.countdown--;
+			 if (b.countdown==0){
+				//console.log("destroying body");
+				detonateBody(b);
+			 }
+		  }
+	   }
+	   
+	   //generate an array containing elements in all scheduledBlocksToPurge[n] arrays.
+	   //not the most efficient way to do things but shouldnt' really matter
+	   var handledBlockList=[];
+	   for (var listno=0;listno<2;listno++){
+			var thisList = scheduledBlocksToPurge[listno];
+		   for (var bb in thisList){
+			 var thisBlock = thisList[bb];
+			 if (handledBlockList.indexOf(thisBlock)==-1){
+				handledBlockList.push(thisBlock);
+				var result = purgeLandscapeFixtures(thisBlock);
+				if (result==-1){
+					landscapeBlocks.splice(landscapeBlocks.indexOf(thisBlock),1);	//remove from array of landscape blocks
+				}
+			 }else{
+			//	 console.log("skipping...");
+			 }
+		   }
+	   }
+	   
+	   for (var bb in scheduledBlocksToUpdate){
+		 var thisBlock = scheduledBlocksToUpdate[bb];
+		 updateLandscapeFixtures(thisBlock);
+		 //for altered blocks, compare existing fixture list with new fixtures from new clip path
+		 //where match, do nothing
+		 //where in existing list, but not new, add to purge list (want to keep fixture around for a frame to avoid bugginess)
+		 //where in new path, but not existing, add new fixture
+	   }
+	   
+	   scheduledBlocksToPurge[1] = scheduledBlocksToPurge[0];
+	   scheduledBlocksToPurge[0] = scheduledBlocksToUpdate;
+	   scheduledBlocksToUpdate=[];
+	   
+	   //create destroy list here because don't try box2d not to mess around with references to bodies (or maybe i'm sticking things on destroy list twice...)
+	   destroy_list = [];
+	   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+	    if (b.shouldDestroy){
+			destroy_list.push(b);
+		}
+	   }
+	   
+	   //Destroy all bodies in destroy_list
+	  for (var i in destroy_list) {
+		world.DestroyBody(destroy_list[i]);
+	  }
+	  // Reset the array
+	  //destroy_list.length = 0;
+	   
+	   world.Step(
+			 0.001*timeStep   //seconds
+		  ,  velIts       //velocity iterations
+		  ,  posIts       //position iterations
+	   );
+	   world.ClearForces();
+}
