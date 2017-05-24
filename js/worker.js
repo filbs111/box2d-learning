@@ -8,7 +8,7 @@ importScripts('../lib/clipper.js',
 
 self.onmessage = function(e) {
 	//postMessage("received message from main : " + e.data[0]);
-	console.log("received message from main : " + e.data[0]);
+	//console.log("received message from main : " + e.data[0]);
 	switch (e.data[0]){
 		case "init":
 			console.log("init called in worker");
@@ -16,6 +16,7 @@ self.onmessage = function(e) {
 			break;
 		case "iterate":
 			iterateMechanics(JSON.parse(e.data[1]));
+			postMessage(["playerPos",JSON.stringify(playerBody.GetTransform().position)]);
 			break;
 		case "guiParams":
 			applyGuiParamsUpdate(JSON.parse(e.data[1]));

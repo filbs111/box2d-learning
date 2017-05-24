@@ -38,6 +38,7 @@ var guiParams={
 }
 
 var worker = new Worker('js/worker.js');
+var playerPosFromWorker={x:0,y:0};
 function start(){	
 	stats = new Stats();
 	stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -67,7 +68,11 @@ function start(){
 	});
 	
 	worker.onmessage=function(e){
-		console.log("received message from worker : " + e.data);
+		//console.log("received message from worker : " + e.data);
+		if (e.data[0]=="playerPos"){
+			playerPosFromWorker = JSON.parse(e.data[1]);
+			//console.log(playerPosFromWorker);
+		}
 	}
 	
 	assetManager.setOnloadFunc(function(){
@@ -267,6 +272,13 @@ function draw_world(world, context, remainderFraction) {
 	}
   }
   
+  //draw the player position from the worker. (test mechanics same in both instances)
+  var ppos = playerPosFromWorker;
+  ctx.beginPath();
+  ctx.arc(ppos.x*drawingScale,ppos.y*drawingScale,0.1*drawingScale,0,2*Math.PI);
+  ctx.stroke();
+  
+  
   ctx.globalCompositeOperation = "lighter";
   for (var e in explosions){
 	explosions[e].draw();
@@ -373,6 +385,7 @@ function draw_world(world, context, remainderFraction) {
   //this will create the outline of a shape
   //context.stroke();
   } 
+  
 }
 
 function goFullscreen(elem){
