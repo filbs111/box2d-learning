@@ -46,11 +46,17 @@ var torqueScale = relativeScale*forceScale;	//not sure why - mass goes as square
 												//so expected power 3. possibly this is what determines steady turn speed, and really
 												//should be altering angular damping too.
 var thrustForce=40*forceScale;
+var autofireCountdown=0;
 
 var world;
 var bC;
 var waterLevel = -875/SCALE;
 
+
+var mechanicsFps = 30;
+var timeStep = 1000/mechanicsFps;
+var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
+var maxUpdatesPerFrame = 3;
 
 
 var initscount=0;

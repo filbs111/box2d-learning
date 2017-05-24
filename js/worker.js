@@ -1,17 +1,26 @@
 importScripts('../lib/clipper.js',
 			'../lib/Box2d.min.js',
 			'../js-utils/gaussrand.js',
-			'../js/mechanics.js');
+			'../js/mechanics.js',
+			'../js-utils/explosions.js',
+			'../js-utils/settings.js');
 
 
 self.onmessage = function(e) {
-	postMessage("received message from main : " + e.data);
-	if (e.data == "init"){
-		console.log("init called in worker");
-		init();
-		return;
+	//postMessage("received message from main : " + e.data[0]);
+	console.log("received message from main : " + e.data[0]);
+	switch (e.data[0]){
+		case "init":
+			console.log("init called in worker");
+			init();
+			break;
+		case "iterate":
+			iterateMechanics(JSON.parse(e.data[1]));
+			break;
+		case "guiParams":
+			applyGuiParamsUpdate(JSON.parse(e.data[1]));
+			break;
 	}
-	applyGuiParamsUpdate(e.data); //TODO recognise different messages.
 };
 
 var guiParams={};	//worker does not have direct access to variables in main scope.

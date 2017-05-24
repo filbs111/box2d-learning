@@ -5,13 +5,6 @@ var ctx;
 var stats;
 
 var currentTime;
-var mechanicsFps = 30;
-var timeStep = 1000/mechanicsFps;
-var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
-var maxUpdatesPerFrame = 3;
-
-var autofireCountdown=0;
-
 
 window.onresize = aspectFitCanvas;		
 
@@ -67,7 +60,7 @@ function start(){
 	init();
 	keyThing.setKeydownCallback(82,function(){			//82=R
 		init();
-		worker.postMessage("init");
+		worker.postMessage(["init"]);
 	});
 	keyThing.setKeydownCallback(70,function(){			//70=F
 		goFullscreen(canvas);
@@ -80,7 +73,7 @@ function start(){
 	assetManager.setOnloadFunc(function(){
 		currentTime = (new Date()).getTime();
 		requestAnimationFrame(update);
-		worker.postMessage(JSON.stringify(guiParams));
+		worker.postMessage(["guiParams", JSON.stringify(guiParams)]);
 	});
 	assetManager.setAssetsToPreload({
 		EXPL: settings.EXPLOSION_IMAGE_SRC
@@ -113,14 +106,16 @@ function update(timeNow) {
 			turnPlatform:keyThing.downKey(),
 			space:keyThing.keystate(32)
 		}
-
+		
 	   if (updatesRequired>1){
 		   for (var ii=1;ii<updatesRequired;ii++){
 			   iterateMechanics(inputObj);
+			   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
 		   }
 	   }
 	   copyPositions();
 	   iterateMechanics(inputObj);
+	   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
    }
    stats.begin();
    //debugCtx.setTransform(1, 0, 0, 1, 100, 0);  //can transform debug canvas anyway, but should then also manually clear it
