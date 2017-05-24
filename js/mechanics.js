@@ -766,7 +766,103 @@ function checkForFixedRelativePose(body1, body2){
 var velIts=8;
 var posIts=3;
 
-function iterateMechanics(){
+function iterateMechanics(inputObj){
+	   
+	   if (inputObj.bomb){dropBomb();}
+	   
+	   //possibly setting forces multiple repeatedly is unnecessary - what does ClearForces do?
+	   var turn = inputObj.turn;
+	   if (turn!=0){
+		   if (guiParams.torqueAllSegs){
+		   for (var bb in playerBodies){
+			   var thisBody = playerBodies[bb];
+			   thisBody.ApplyTorque(6*turn*torqueScale);	//TODO apply torque to joints?
+		   }
+		   }else{
+			   playerBody.ApplyTorque(6*turn*torqueScale);	//TODO apply torque to joints?
+		   }
+	   }
+	   var thrust = thrustForce*inputObj.thrust;
+	   //console.log(thrust);
+	   var fwd = playerBody.GetTransform().R.col2;
+	   if (thrust!=0){
+		   //apply thrust to all parts of worm
+		   for (var bb in playerBodies){
+			   var thisBody = playerBodies[bb];
+			   var thisFwd = thisBody.GetTransform().R.col2;
+			   thisBody.ApplyForce(new b2Vec2(thrust*thisFwd.x,thrust*thisFwd.y), thisBody.GetWorldCenter());
+		   }
+		   
+		   if (guiParams.drill){
+			   //eat landscape in front of player.
+				var bodyPos = playerBody.GetTransform().position;
+				var fwd = playerBody.GetTransform().R.col2;
+				var noseDisplacement = 0.2;
+				var nosePos = {x:bodyPos.x + noseDisplacement*fwd.x ,
+						y:bodyPos.y + noseDisplacement*fwd.y };
+			editLandscapeFixtureBlocks(nosePos.x *SCALE,nosePos.y *SCALE,20);
+		   }
+	   }
+	   //air resistance
+	   var dragVec = playerBody.GetLinearVelocity().Copy();
+	   //var randomDrag = new b2Vec2(Math.random()-0.5, Math.random()-0.5);
+	   //randomDrag.Multiply(0.025*dragVec.LengthSquared());
+	   dragVec.Multiply(-0.01*relativeScale*dragVec.Length());
+	   playerBody.ApplyForce(dragVec, playerBody.GetWorldCenter());
+	   //playerBody.ApplyForce(randomDrag, playerBody.GetWorldCenter());
+
+	
+	   //cam lookahead
+	   /*
+	   var scaledPVel = playerBody.GetLinearVelocity().Copy();
+	   scaledPVel.Multiply(0.04*0.3);
+	   camLookAhead.Multiply(0.96);
+	   camLookAhead.Add(scaledPVel);
+	   */
+	   camPosTarget = playerBody.GetTransform().position.Copy();
+	   camLookAhead = playerBody.GetLinearVelocity().Copy();
+	   camLookAhead.Multiply(0.3);
+	   
+	   //as a hack to avoid wierd slide to stop behaviour, make lookahead have a dead zone
+	   var camLookAheadTestHack = camLookAhead.Length();
+	   
+	   camLookAheadTestHack = camLookAheadTestHack/(camLookAheadTestHack+4);	//graduated "dead zone"
+	   camLookAhead.Multiply(camLookAheadTestHack);
+	   camPosTarget.Add(camLookAhead);
+	   
+	   //console.log(camLookAhead.Length().toFixed(2));
+	   
+	   //camPos should be drawn towards this point using with spring/damper critical damping
+	   var camPosDifference = camPosTarget.Copy();
+	   camPosDifference.Subtract(camPos);
+	   //console.log(camPosDifference.Length());
+	   
+	   var camVelDifference = camVel.Copy();
+	   
+		var camVelTarget = playerBody.GetLinearVelocity().Copy();	//not strictly same as target but produces better behaviour.
+	    camVelTarget.Multiply(timeStep*0.001);	//box2d works in seconds
+		   
+	   camVelDifference.Subtract(camVelTarget);
+	   
+	   //soft settings
+	   camPosDifference.Multiply(0.01);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
+	   camVelDifference.Multiply(-0.2);	//this no longer the difference, but can't put into calculations otherwise (statement doesn't return itself...)
+	   
+	   //apply an acceleration to camera proportional to position difference (damper)
+	   camVel.Add(camPosDifference);
+	   
+	   //apply an acceleration to camera proportional to velocity difference (damper)
+	   camVel.Add(camVelDifference);
+	   
+	   camPos.Add(camVel);
+	   
+	   
+	   floatingPlatform.ApplyTorque(5000*inputObj.turnPlatform);
+	   
+	   playerBody.ApplyForce(new b2Vec2(0,-20*forceScale*inputObj.space), 
+							playerBody.GetWorldCenter());	//upward force when press space key
+
+	   
 	   
 	   for (var e in explosions){
 		  explosions[e].iterate();
