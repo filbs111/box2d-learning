@@ -1,7 +1,8 @@
-importScripts('../lib/clipper.js',
+importScripts('../lib/seedrandom.min.js',
+			'../lib/clipper.js',
 			'../lib/Box2d.min.js',
-			'../js-utils/gaussrand.js',
 			'../js/mechanics.js',
+			'../js-utils/gaussrand.js',
 			'../js-utils/explosions.js',
 			'../js-utils/settings.js');
 
