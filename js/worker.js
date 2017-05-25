@@ -16,8 +16,23 @@ self.onmessage = function(e) {
 			break;
 		case "iterate":
 			iterateMechanics(JSON.parse(e.data[1]));
+			var objTransforms=[];
+			//list all objects.
+			//this will result in stringifying, sending and parsing a lot of JSON.
+			//possible improvements: sending only things that have changed position, or things that are on screen
+			//using byte arrays rather than strings
+			//using transferable objects (expect should just do this)
+			
+			//todo let renderer know what each object looks like.
+			for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+				if (!b.clippablePath){	//not a landscape thing
+					objTransforms.push(b.GetTransform());	//might optimise by only sending x,y for bombs, else x,y,rotation
+															// (rotation matrix can be reconstructed)
+				}
+			}
+			
 			postMessage(["transforms",JSON.stringify(
-			{player:playerBody.GetTransform(),	//note that x,y angle is sufficient
+			{objTransforms:objTransforms,
 			camera:camPos
 			})]);
 			break;

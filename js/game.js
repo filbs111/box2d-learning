@@ -38,7 +38,7 @@ var guiParams={
 }
 
 var worker = new Worker('js/worker.js');
-var transformsFromWorker={player:{position:{x:0,y:0}},camera:{x:0,y:0}};
+var transformsFromWorker={objTransforms:[],camera:{x:0,y:0}};
 
 function start(){	
 	stats = new Stats();
@@ -276,12 +276,14 @@ function draw_world(world, context, remainderFraction) {
   var camPosWorker = transformsFromWorker.camera;
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
   
-  var ptransf = transformsFromWorker.player;
-  var ppos= ptransf.position;
-  ctx.beginPath();
-  ctx.arc(ppos.x*drawingScale,ppos.y*drawingScale,0.1*drawingScale,0,2*Math.PI);
-  ctx.stroke();
-  
+  var objTransforms = transformsFromWorker.objTransforms;
+  for (tt in objTransforms){
+	  var thisTransform = objTransforms[tt];
+	  var thisPos= thisTransform.position;
+	  ctx.beginPath();
+	  ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,0.1*drawingScale,0,2*Math.PI);
+	  ctx.stroke();
+  }
   
   ctx.globalCompositeOperation = "lighter";
   for (var e in explosions){
