@@ -16,7 +16,10 @@ self.onmessage = function(e) {
 			break;
 		case "iterate":
 			iterateMechanics(JSON.parse(e.data[1]));
-			postMessage(["playerPos",JSON.stringify(playerBody.GetTransform().position)]);
+			postMessage(["transforms",JSON.stringify(
+			{player:playerBody.GetTransform(),	//note that x,y angle is sufficient
+			camera:camPos
+			})]);
 			break;
 		case "guiParams":
 			applyGuiParamsUpdate(JSON.parse(e.data[1]));

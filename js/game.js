@@ -38,7 +38,8 @@ var guiParams={
 }
 
 var worker = new Worker('js/worker.js');
-var playerPosFromWorker={x:0,y:0};
+var transformsFromWorker={player:{position:{x:0,y:0}},camera:{x:0,y:0}};
+
 function start(){	
 	stats = new Stats();
 	stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -69,9 +70,8 @@ function start(){
 	
 	worker.onmessage=function(e){
 		//console.log("received message from worker : " + e.data);
-		if (e.data[0]=="playerPos"){
-			playerPosFromWorker = JSON.parse(e.data[1]);
-			//console.log(playerPosFromWorker);
+		if (e.data[0]=="transforms"){
+			transformsFromWorker = JSON.parse(e.data[1]);
 		}
 	}
 	
@@ -273,7 +273,11 @@ function draw_world(world, context, remainderFraction) {
   }
   
   //draw the player position from the worker. (test mechanics same in both instances)
-  var ppos = playerPosFromWorker;
+  var camPosWorker = transformsFromWorker.camera;
+  ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
+  
+  var ptransf = transformsFromWorker.player;
+  var ppos= ptransf.position;
   ctx.beginPath();
   ctx.arc(ppos.x*drawingScale,ppos.y*drawingScale,0.1*drawingScale,0,2*Math.PI);
   ctx.stroke();
