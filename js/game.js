@@ -272,6 +272,12 @@ function draw_world(world, context, remainderFraction) {
 	}
   }
   
+  ctx.globalCompositeOperation = "lighter";
+  for (var e in explosions){
+	explosions[e].draw();
+  }
+  ctx.globalCompositeOperation = "source-over"; //set back to default
+  
   //draw the player position from the worker. (test mechanics same in both instances)
   var camPosWorker = transformsFromWorker.camera;
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
@@ -285,11 +291,6 @@ function draw_world(world, context, remainderFraction) {
 	  ctx.stroke();
   }
   
-  ctx.globalCompositeOperation = "lighter";
-  for (var e in explosions){
-	explosions[e].draw();
-  }
-  ctx.globalCompositeOperation = "source-over"; //set back to default
   
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   //var startWater = canvas.height/2; //Math.max(0,)
