@@ -38,7 +38,7 @@ var guiParams={
 }
 
 var worker = new Worker('js/worker.js');
-var transformsFromWorker={objTransforms:[],camera:{x:0,y:0}};
+var transformsFromWorker={objTransforms:{},camera:{x:0,y:0}};
 
 function start(){	
 	stats = new Stats();
@@ -283,12 +283,14 @@ function draw_world(world, context, remainderFraction) {
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
   
   var objTransforms = transformsFromWorker.objTransforms;
+  context.fillStyle="#000";
   for (tt in objTransforms){
 	  var thisTransform = objTransforms[tt];
 	  var thisPos= thisTransform.position;
 	  ctx.beginPath();
 	  ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,0.1*drawingScale,0,2*Math.PI);
 	  ctx.stroke();
+	  ctx.fillText(tt, 10+thisPos.x*drawingScale,thisPos.y*drawingScale );
   }
   
   

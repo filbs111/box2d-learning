@@ -17,7 +17,7 @@ self.onmessage = function(e) {
 			break;
 		case "iterate":
 			iterateMechanics(JSON.parse(e.data[1]));
-			var objTransforms=[];
+			var objTransforms={};
 			//list all objects.
 			//this will result in stringifying, sending and parsing a lot of JSON.
 			//possible improvements: sending only things that have changed position, or things that are on screen
@@ -26,8 +26,14 @@ self.onmessage = function(e) {
 			
 			//todo let renderer know what each object looks like.
 			for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+				
+				//assign a unique id if doesn't already have one
+				if (!b.uniqueId){b.uniqueId=nextId();}
+				
 				if (!b.clippablePath){	//not a landscape thing
-					objTransforms.push(b.GetTransform());	//might optimise by only sending x,y for bombs, else x,y,rotation
+					//send some id. might optimise by just sending ordered array
+				
+					objTransforms[b.uniqueId]=b.GetTransform();	//might optimise by only sending x,y for bombs, else x,y,rotation
 															// (rotation matrix can be reconstructed)
 				}
 			}
@@ -42,6 +48,13 @@ self.onmessage = function(e) {
 			break;
 	}
 };
+
+var nextId=(function(){
+	id=0;
+	return function(){
+		return id++;
+	}
+})();
 
 var guiParams={};	//worker does not have direct access to variables in main scope.
 var guiParamsPrevious;	
