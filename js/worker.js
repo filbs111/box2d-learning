@@ -18,6 +18,8 @@ self.onmessage = function(e) {
 		case "iterate":
 			iterateMechanics(JSON.parse(e.data[1]));
 			var objTransforms={};
+			var objDrawInfo={};
+			
 			//list all objects.
 			//this will result in stringifying, sending and parsing a lot of JSON.
 			//possible improvements: sending only things that have changed position, or things that are on screen
@@ -35,11 +37,32 @@ self.onmessage = function(e) {
 				
 					objTransforms[b.uniqueId]=b.GetTransform();	//might optimise by only sending x,y for bombs, else x,y,rotation
 															// (rotation matrix can be reconstructed)
+															
+															
+					var shapes = [];	//normally only 1 shape in array
+					for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
+					  var shape = f.GetShape();
+					  var shapeOut = {};
+					  var shapeType = shape.GetType();
+					  shapeOut.type = shapeType;
+					  switch (shapeType){
+						  case b2Shape.e_circleShape:
+							shapeOut.radius = shape.GetRadius();
+							break;
+						  case b2Shape.e_polygonShape:
+							shapeOut.verts = shape.GetVertices();
+							break;
+					  }
+					  shapes.push(shapeOut);
+					}
+					objDrawInfo[b.uniqueId]=shapes;	//naively send every shape every frame
+					
 				}
 			}
 			
 			postMessage(["transforms",JSON.stringify(
 			{objTransforms:objTransforms,
+			objDrawInfo:objDrawInfo,
 			camera:camPos
 			})]);
 			break;

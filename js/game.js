@@ -262,7 +262,6 @@ function draw_world(world, context, remainderFraction) {
 		//A body has many fixtures
 		for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
 		  var shape = f.GetShape();
-		  var shapeType = shape.GetType();
 		  if (isNaN(b.GetPosition().x)) {
 			alert('Invalid Position : ' + b.GetPosition().x);
 		  } else {
@@ -283,14 +282,50 @@ function draw_world(world, context, remainderFraction) {
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
   
   var objTransforms = transformsFromWorker.objTransforms;
+  var objDrawInfo = transformsFromWorker.objDrawInfo;
   context.fillStyle="#000";
-  for (tt in objTransforms){
-	  var thisTransform = objTransforms[tt];
+  for (id in objTransforms){
+	  var thisTransform = objTransforms[id];
 	  var thisPos= thisTransform.position;
-	  ctx.beginPath();
-	  ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,0.1*drawingScale,0,2*Math.PI);
-	  ctx.stroke();
-	  ctx.fillText(tt, 10+thisPos.x*drawingScale,thisPos.y*drawingScale );
+	  var thisRMat = thisTransform.R;
+	  
+	  for (ss in objDrawInfo[id]){
+		  var shapes = objDrawInfo[id];
+		  for (sss in shapes){
+			thisShape = shapes[sss];
+			switch(thisShape.type){
+				case b2Shape.e_circleShape:
+					ctx.beginPath();
+					ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,thisShape.radius*drawingScale,0,2*Math.PI);
+					ctx.stroke();
+					break;
+				case b2Shape.e_polygonShape:
+					ctx.beginPath();
+					var verts = thisShape.verts;
+					var transformedverts=[];
+					
+					for (var ii=0;ii<verts.length;ii++){
+						var thisVert = verts[ii];
+						transformedverts.push({
+							x:thisPos.x + thisVert.x*thisRMat.col1.x + thisVert.y*thisRMat.col2.x ,
+							y:thisPos.y + thisVert.x*thisRMat.col1.y + thisVert.y*thisRMat.col2.y 
+						});
+					}
+					
+					context.moveTo(transformedverts[verts.length-1].x * drawingScale, 
+									transformedverts[verts.length-1].y * drawingScale);
+					for (var i = 0; i < verts.length; i++) {
+						context.lineTo(transformedverts[i].x * drawingScale, 
+									transformedverts[i].y * drawingScale);
+					}
+					
+					ctx.stroke();
+					break;
+			}
+		  }
+	  }
+	  
+	  ctx.fillText(id, 10+thisPos.x*drawingScale,thisPos.y*drawingScale );
   }
   
   
@@ -396,6 +431,7 @@ function draw_world(world, context, remainderFraction) {
   } 
   
 }
+
 
 function goFullscreen(elem){
 	if (elem.requestFullscreen) {
