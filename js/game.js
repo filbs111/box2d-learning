@@ -91,6 +91,7 @@ function update(timeNow) {
    //var timeNow = (new Date()).getTime();
    var forceCatchup = false;
    var timeDiff = timeNow-currentTime;
+   timeDiff*= guiParams.paused? 0:1;
    var updatesRequired = timeDiff/timeStep;
    var remainderFraction = updatesRequired - Math.floor(updatesRequired);
    updatesRequired = Math.floor(updatesRequired);
@@ -103,7 +104,7 @@ function update(timeNow) {
    }else{
 	   currentTime+=timeStep*updatesRequired;
    }
-   if (updatesRequired>0 && !guiParams.paused){
+   if (updatesRequired>0){
 	   var inputObj={
 			turn:keyThing.rightKey() - keyThing.leftKey(),
 			thrust:keyThing.upKey(),
