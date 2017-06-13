@@ -7,6 +7,10 @@ importScripts('../lib/seedrandom.min.js',
 			'../js-utils/settings.js');
 
 
+var existingDrawInfoStringified=[];
+var existingPoseInfoStringified=[];
+var messageNumber = 0;			
+
 self.onmessage = function(e) {
 	//postMessage("received message from main : " + e.data[0]);
 	//console.log("received message from main : " + e.data[0]);
@@ -20,6 +24,9 @@ self.onmessage = function(e) {
 			var objTransforms={};
 			var objDrawInfo={};
 			
+			var numskipped =0;
+			var numsent = 0;
+			
 			//list all objects.
 			//this will result in stringifying, sending and parsing a lot of JSON.
 			//possible improvements: sending only things that have changed position, or things that are on screen
@@ -32,38 +39,54 @@ self.onmessage = function(e) {
 				//assign a unique id if doesn't already have one
 				if (!b.uniqueId){b.uniqueId=nextId();}
 				
-				if (!b.clippablePath){	//not a landscape thing
-					//send some id. might optimise by just sending ordered array
+				if (!b.clippablePath){	// || ( Math.random() < 0.5) ){
 				
+				var stringifiedTransform = JSON.stringify(b.GetTransform());
+				if ( !existingPoseInfoStringified[b.uniqueId] || existingPoseInfoStringified[b.uniqueId] != stringifiedTransform ) {
 					objTransforms[b.uniqueId]=b.GetTransform();	//might optimise by only sending x,y for bombs, else x,y,rotation
-															// (rotation matrix can be reconstructed)
-															
-															
-					var shapes = [];	//normally only 1 shape in array
-					for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
-					  var shape = f.GetShape();
-					  var shapeOut = {};
-					  var shapeType = shape.GetType();
-					  shapeOut.type = shapeType;
-					  switch (shapeType){
-						  case b2Shape.e_circleShape:
-							shapeOut.radius = shape.GetRadius();
-							break;
-						  case b2Shape.e_polygonShape:
-							shapeOut.verts = shape.GetVertices();
-							break;
-					  }
-					  shapes.push(shapeOut);
-					}
-					objDrawInfo[b.uniqueId]=shapes;	//naively send every shape every frame
-					
+														// (rotation matrix can be reconstructed)
+					existingPoseInfoStringified[b.uniqueId]=stringifiedTransform;
+					numsent++;
+				} else {
+					objTransforms[b.uniqueId]=false;	//still have to send something. TODO send messages to delete objects so don't need this.
+					numskipped++;
 				}
+					
+				var shapes = [];	//normally only 1 shape in array
+				for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
+				  var shape = f.GetShape();
+				  var shapeOut = {};
+				  var shapeType = shape.GetType();
+				  shapeOut.type = shapeType;
+				  switch (shapeType){
+					  case b2Shape.e_circleShape:
+						shapeOut.radius = shape.GetRadius();
+						break;
+					  case b2Shape.e_polygonShape:
+						shapeOut.verts = shape.GetVertices();
+						break;
+				  }
+				  shapes.push(shapeOut);
+				};
+				
+				var jsonshapes = JSON.stringify(shapes);
+				
+				var currentDrawInfo = existingDrawInfoStringified[b.uniqueId];	// || "";
+				if (currentDrawInfo != jsonshapes){
+					objDrawInfo[b.uniqueId]=shapes;	//are later json encoding this.
+					existingDrawInfoStringified[b.uniqueId] = jsonshapes;
+				}
+							
+				};	//end if clippablePath
 			}
+			
+			//console.log("sent : " + numsent + " , skipped: " + numskipped);
 			
 			postMessage(["transforms",JSON.stringify(
 			{objTransforms:objTransforms,
 			objDrawInfo:objDrawInfo,
-			camera:camPos
+			camera:camPos,
+			messageNumber:messageNumber++
 			})]);
 			break;
 		case "guiParams":

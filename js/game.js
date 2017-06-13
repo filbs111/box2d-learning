@@ -72,6 +72,25 @@ function start(){
 		//console.log("received message from worker : " + e.data);
 		if (e.data[0]=="transforms"){
 			transformsFromWorker = JSON.parse(e.data[1]);
+			
+			var objTransforms = transformsFromWorker.objTransforms;
+			var objDrawInfo = transformsFromWorker.objDrawInfo;
+			
+			if (transformsFromWorker.messageNumber<lastMessageNumber++){alert("messages out of order!!!");};
+			
+			for (id in objTransforms){
+			  var thisTransform = objTransforms[id];
+			  if (thisTransform){
+				  existingPoseInfo[id] = thisTransform;
+			  }
+	 
+			  var shapes = objDrawInfo[id];
+			  //shapes might be false..
+			  if (shapes){
+			      existingDrawInfo[id] = shapes;
+			  }
+			}
+		
 		}
 	}
 	
@@ -161,6 +180,10 @@ function calcInterpPositions(remainderFraction){
 
 var drawingScale;
 var skipLandsDraw=false;
+
+var existingDrawInfo=[];
+var existingPoseInfo=[];
+var lastMessageNumber =-1;
 
 function draw_world(world, context, remainderFraction) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
@@ -286,47 +309,52 @@ function draw_world(world, context, remainderFraction) {
   var objDrawInfo = transformsFromWorker.objDrawInfo;
   context.fillStyle="#000";
   for (id in objTransforms){
-	  var thisTransform = objTransforms[id];
+	  var thisTransform = objTransforms[id] || existingPoseInfo[id];
 	  var thisPos= thisTransform.position;
 	  var thisRMat = thisTransform.R;
 	  
-	  for (ss in objDrawInfo[id]){
-		  var shapes = objDrawInfo[id];
-		  for (sss in shapes){
-			thisShape = shapes[sss];
-			switch(thisShape.type){
-				case b2Shape.e_circleShape:
-					ctx.beginPath();
-					ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,thisShape.radius*drawingScale,0,2*Math.PI);
-					ctx.stroke();
-					break;
-				case b2Shape.e_polygonShape:
-					ctx.beginPath();
-					var verts = thisShape.verts;
-					var transformedverts=[];
-					
-					for (var ii=0;ii<verts.length;ii++){
-						var thisVert = verts[ii];
-						transformedverts.push({
-							x:thisPos.x + thisVert.x*thisRMat.col1.x + thisVert.y*thisRMat.col2.x ,
-							y:thisPos.y + thisVert.x*thisRMat.col1.y + thisVert.y*thisRMat.col2.y 
-						});
-					}
-					
-					context.moveTo(transformedverts[verts.length-1].x * drawingScale, 
-									transformedverts[verts.length-1].y * drawingScale);
-					for (var i = 0; i < verts.length; i++) {
-						context.lineTo(transformedverts[i].x * drawingScale, 
-									transformedverts[i].y * drawingScale);
-					}
-					
-					ctx.stroke();
-					break;
-			}
-		  }
+	  var shapes = objDrawInfo[id] || existingDrawInfo[id];
+	  
+	  if (thisPos){	//should always have this...?!!
+	  
+	  for (sss in shapes){
+		thisShape = shapes[sss];
+		switch(thisShape.type){
+			case b2Shape.e_circleShape:
+				ctx.beginPath();
+				ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,thisShape.radius*drawingScale,0,2*Math.PI);
+				ctx.stroke();
+				break;
+			case b2Shape.e_polygonShape:
+				ctx.beginPath();
+				var verts = thisShape.verts;
+				var transformedverts=[];
+				
+				for (var ii=0;ii<verts.length;ii++){
+					var thisVert = verts[ii];
+					transformedverts.push({
+						x:thisPos.x + thisVert.x*thisRMat.col1.x + thisVert.y*thisRMat.col2.x ,
+						y:thisPos.y + thisVert.x*thisRMat.col1.y + thisVert.y*thisRMat.col2.y 
+					});
+				}
+				
+				context.moveTo(transformedverts[verts.length-1].x * drawingScale, 
+								transformedverts[verts.length-1].y * drawingScale);
+				for (var i = 0; i < verts.length; i++) {
+					context.lineTo(transformedverts[i].x * drawingScale, 
+								transformedverts[i].y * drawingScale);
+				}
+				
+				ctx.stroke();
+				break;
+		}
 	  }
 	  
-	  ctx.fillText(id, 10+thisPos.x*drawingScale,thisPos.y*drawingScale );
+		ctx.fillText(id, 10+thisPos.x*drawingScale,thisPos.y*drawingScale );
+	  } else {
+		console.log("no position !!!!! " + JSON.stringify(thisTransform) + " , " + JSON.stringify(objDrawInfo[id]) + " , " +  JSON.stringify(existingDrawInfo[id]) );
+	  }
+	  
   }
   
   
