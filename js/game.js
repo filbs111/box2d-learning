@@ -71,7 +71,7 @@ function start(){
 	worker.onmessage=function(e){
 		//console.log("received message from worker : " + e.data);
 		if (e.data[0]=="transforms"){
-			transformsFromWorker = JSON.parse(e.data[1]);
+			transformsFromWorker = e.data[1];
 			
 			var objTransforms = transformsFromWorker.objTransforms;
 			var objDrawInfo = transformsFromWorker.objDrawInfo;

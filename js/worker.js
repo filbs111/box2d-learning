@@ -82,12 +82,12 @@ self.onmessage = function(e) {
 			
 			//console.log("sent : " + numsent + " , skipped: " + numskipped);
 			
-			postMessage(["transforms",JSON.stringify(
+			postMessage(["transforms",
 			{objTransforms:objTransforms,
 			objDrawInfo:objDrawInfo,
 			camera:camPos,
 			messageNumber:messageNumber++
-			})]);
+			}]);
 			break;
 		case "guiParams":
 			applyGuiParamsUpdate(JSON.parse(e.data[1]));
