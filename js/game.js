@@ -70,8 +70,16 @@ function start(){
 	
 	worker.onmessage=function(e){
 		//console.log("received message from worker : " + e.data);
+		
 		if (e.data[0]=="transforms"){
 			transformsFromWorker = e.data[1];
+			
+			var toDelete = transformsFromWorker.toDelete;
+			for (var ii in toDelete){
+				var id = toDelete[ii];
+				delete existingPoseInfo[id];
+				delete existingDrawInfo[id];
+			}
 			
 			var objTransforms = transformsFromWorker.objTransforms;
 			var objDrawInfo = transformsFromWorker.objDrawInfo;
@@ -87,8 +95,11 @@ function start(){
 			  var shapes = objDrawInfo[id];
 			  //shapes might be false..
 			  if (shapes){
-			      existingDrawInfo[id] = shapes;
-			  }
+					existingDrawInfo[id] = shapes;
+			  } 
+			  
+			  //console.log("pos : " + Object.keys(objTransforms).length + " , draw : " + Object.keys(objDrawInfo).length + " , delete : " + toDelete.length );
+			  
 			}
 		
 		}
@@ -305,15 +316,13 @@ function draw_world(world, context, remainderFraction) {
   var camPosWorker = transformsFromWorker.camera;
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
   
-  var objTransforms = transformsFromWorker.objTransforms;
-  var objDrawInfo = transformsFromWorker.objDrawInfo;
   context.fillStyle="#000";
-  for (id in objTransforms){
-	  var thisTransform = objTransforms[id] || existingPoseInfo[id];
+  for (id in existingPoseInfo){
+	  var thisTransform = existingPoseInfo[id];
 	  var thisPos= thisTransform.position;
 	  var thisRMat = thisTransform.R;
 	  
-	  var shapes = objDrawInfo[id] || existingDrawInfo[id];
+	  var shapes = existingDrawInfo[id];
 	  
 	  if (thisPos){	//should always have this...?!!
 	  

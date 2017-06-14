@@ -9,7 +9,7 @@ importScripts('../lib/seedrandom.min.js',
 
 var existingDrawInfoStringified=[];
 var existingPoseInfoStringified=[];
-var messageNumber = 0;			
+var messageNumber = 0;		
 
 self.onmessage = function(e) {
 	//postMessage("received message from main : " + e.data[0]);
@@ -24,14 +24,17 @@ self.onmessage = function(e) {
 			var objTransforms={};
 			var objDrawInfo={};
 			
-			var numskipped =0;
-			var numsent = 0;
-			
 			//list all objects.
 			//this will result in stringifying, sending and parsing a lot of JSON.
 			//possible improvements: sending only things that have changed position, or things that are on screen
 			//using byte arrays rather than strings
 			//using transferable objects (expect should just do this)
+			
+			//list all ids so can pull out things that still exist, send delete command for the rest.
+			var existingObjects={};
+			for (ii in existingPoseInfoStringified){
+				existingObjects[ii]=true;
+			}
 			
 			//todo let renderer know what each object looks like.
 			for (var b = world.GetBodyList(); b; b = b.GetNext()) {
@@ -39,17 +42,14 @@ self.onmessage = function(e) {
 				//assign a unique id if doesn't already have one
 				if (!b.uniqueId){b.uniqueId=nextId();}
 				
-				if (!b.clippablePath){	// || ( Math.random() < 0.5) ){
+				if (!b.clippablePath || ( b.uniqueId % 10 == 0 ) ){	//send 1/10th of landscape blocks
+																	//TODO draw clipping of landscape blocks somewhere (ie don't draw blocks outside of bounds)
 				
 				var stringifiedTransform = JSON.stringify(b.GetTransform());
 				if ( !existingPoseInfoStringified[b.uniqueId] || existingPoseInfoStringified[b.uniqueId] != stringifiedTransform ) {
 					objTransforms[b.uniqueId]=b.GetTransform();	//might optimise by only sending x,y for bombs, else x,y,rotation
 														// (rotation matrix can be reconstructed)
 					existingPoseInfoStringified[b.uniqueId]=stringifiedTransform;
-					numsent++;
-				} else {
-					objTransforms[b.uniqueId]=false;	//still have to send something. TODO send messages to delete objects so don't need this.
-					numskipped++;
 				}
 					
 				var shapes = [];	//normally only 1 shape in array
@@ -69,25 +69,35 @@ self.onmessage = function(e) {
 				  shapes.push(shapeOut);
 				};
 				
-				var jsonshapes = JSON.stringify(shapes);
-				
 				var currentDrawInfo = existingDrawInfoStringified[b.uniqueId];	// || "";
-				if (currentDrawInfo != jsonshapes){
-					objDrawInfo[b.uniqueId]=shapes;	//are later json encoding this.
+				if (!currentDrawInfo){	//to test that stringifying (for comparision) isn't cause of slowness, turn off. seems isn't problem 
+				var jsonshapes = JSON.stringify(shapes);	//TODO flag objects for re-send when edit landscape
+				//if (currentDrawInfo != jsonshapes && ){
+					objDrawInfo[b.uniqueId]=shapes;
 					existingDrawInfoStringified[b.uniqueId] = jsonshapes;
 				}
-							
+				
 				};	//end if clippablePath
+				
+				//remove uniqueId
+				delete existingObjects[b.uniqueId];
+				
+			}
+						
+			for (var ii in existingObjects){	//now things that don't exist
+				delete existingDrawInfoStringified[ii];
+				delete existingPoseInfoStringified[ii];
 			}
 			
-			//console.log("sent : " + numsent + " , skipped: " + numskipped);
 			
 			postMessage(["transforms",
 			{objTransforms:objTransforms,
 			objDrawInfo:objDrawInfo,
+			toDelete:Object.keys(existingObjects),
 			camera:camPos,
 			messageNumber:messageNumber++
 			}]);
+			
 			break;
 		case "guiParams":
 			applyGuiParamsUpdate(JSON.parse(e.data[1]));
