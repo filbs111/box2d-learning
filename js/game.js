@@ -313,6 +313,17 @@ function draw_world(world, context, remainderFraction) {
 			}
 		}
 	  }
+	  
+	  ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
+	  //var startWater = canvas.height/2; //Math.max(0,)
+	  var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+camPosInterp.y));
+	  var endWater = canvas.height;
+	  //context.fillStyle="rgba(0, 150, 75, 0.5)";
+	  context.fillStyle="rgba(0, 100, 150, 0.5)";
+
+	  context.fillRect(0, startWater, canvas.width, endWater-startWater);	
+	  
+	  
   } //endif drawNormal
   
   ctx.globalCompositeOperation = "lighter";
@@ -422,16 +433,20 @@ function draw_world(world, context, remainderFraction) {
 	  
   }
   
-  }	//end if draw from worker
+  
   
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
-  //var startWater = canvas.height/2; //Math.max(0,)
-  var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+camPosInterp.y));
+  
+  var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+camPosWorker.y));
   var endWater = canvas.height;
   //context.fillStyle="rgba(0, 150, 75, 0.5)";
   context.fillStyle="rgba(0, 100, 150, 0.5)";
 
   context.fillRect(0, startWater, canvas.width, endWater-startWater);	
+  
+  
+  }	//end if draw from worker
+  
   
   
   function drawShape(body, shape, context, remainderFraction) {
