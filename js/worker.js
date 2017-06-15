@@ -41,10 +41,7 @@ self.onmessage = function(e) {
 				
 				//assign a unique id if doesn't already have one
 				if (!b.uniqueId){b.uniqueId=nextId();}
-				
-				if (!b.clippablePath || ( b.uniqueId % 10 == 0 ) ){	//send 1/10th of landscape blocks
-																	//TODO draw clipping of landscape blocks somewhere (ie don't draw blocks outside of bounds)
-				
+								
 				var stringifiedTransform = JSON.stringify(b.GetTransform());
 				if ( !existingPoseInfoStringified[b.uniqueId] || existingPoseInfoStringified[b.uniqueId] != stringifiedTransform ) {
 					objTransforms[b.uniqueId]=b.GetTransform();	//might optimise by only sending x,y for bombs, else x,y,rotation
@@ -70,15 +67,14 @@ self.onmessage = function(e) {
 				};
 				
 				var currentDrawInfo = existingDrawInfoStringified[b.uniqueId];	// || "";
-				if (!currentDrawInfo){	//to test that stringifying (for comparision) isn't cause of slowness, turn off. seems isn't problem 
+				if (!currentDrawInfo || b.shouldSend){	//to test that stringifying (for comparision) isn't cause of slowness, turn off.  
+				b.shouldSend = false;
 				var jsonshapes = JSON.stringify(shapes);	//TODO flag objects for re-send when edit landscape
-				//if (currentDrawInfo != jsonshapes && ){
+				//if (currentDrawInfo != jsonshapes ){
 					objDrawInfo[b.uniqueId]=shapes;
 					existingDrawInfoStringified[b.uniqueId] = jsonshapes;
 				}
-				
-				};	//end if clippablePath
-				
+								
 				//remove uniqueId
 				delete existingObjects[b.uniqueId];
 				
