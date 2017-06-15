@@ -79,11 +79,13 @@ function start(){
 				var id = toDelete[ii];
 				delete existingPoseInfo[id];
 				delete existingDrawInfo[id];
+				//possibly TODO delete existingBoundsInfo[id]
 			}
 			
 			var objTransforms = transformsFromWorker.objTransforms;
 			var objDrawInfo = transformsFromWorker.objDrawInfo;
-			
+			var objBoundsInfo = transformsFromWorker.objBoundsInfo;
+
 			if (transformsFromWorker.messageNumber<lastMessageNumber++){alert("messages out of order!!!");};
 			
 			for (id in objTransforms){
@@ -97,6 +99,10 @@ function start(){
 			  if (!shapes){alert("shapes is false!")}
 			  existingDrawInfo[id] = shapes;
 			  //console.log("pos : " + Object.keys(objTransforms).length + " , draw : " + Object.keys(objDrawInfo).length + " , delete : " + toDelete.length );
+			}
+			for (id in objBoundsInfo){
+			  var shapes = objDrawInfo[id];
+			  existingBoundsInfo[id] = objBoundsInfo[id];
 			}
 		
 		}
@@ -190,6 +196,7 @@ var drawingScale;
 var skipLandsDraw=false;
 
 var existingDrawInfo=[];
+var existingBoundsInfo=[];
 var existingPoseInfo=[];
 var lastMessageNumber =-1;
 
@@ -321,7 +328,7 @@ function draw_world(world, context, remainderFraction) {
 	  
 	  var shapes = existingDrawInfo[id];
 	  	  
-	  if (thisPos && (id%30==20) ){	//drawing all results in slowdown since no culling for this yet. TODO culling by bounds
+	  if (thisPos && (!existingBoundsInfo[id] || (id%30==20) ) ){	//drawing all results in slowdown since no culling for this yet. TODO culling by bounds
 		  
 	  for (sss in shapes){
 		thisShape = shapes[sss];

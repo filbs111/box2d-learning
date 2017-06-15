@@ -23,6 +23,7 @@ self.onmessage = function(e) {
 			iterateMechanics(JSON.parse(e.data[1]));
 			var objTransforms={};
 			var objDrawInfo={};
+			var objBoundsInfo={};
 			
 			//list all objects.
 			//this will result in stringifying, sending and parsing a lot of JSON.
@@ -71,6 +72,7 @@ self.onmessage = function(e) {
 				b.shouldSend = false;
 				var jsonshapes = JSON.stringify(shapes);	//TODO flag objects for re-send when edit landscape
 				//if (currentDrawInfo != jsonshapes ){
+					objBoundsInfo[b.uniqueId]=b.bounds;
 					objDrawInfo[b.uniqueId]=shapes;
 					existingDrawInfoStringified[b.uniqueId] = jsonshapes;
 				}
@@ -89,6 +91,7 @@ self.onmessage = function(e) {
 			postMessage(["transforms",
 			{objTransforms:objTransforms,
 			objDrawInfo:objDrawInfo,
+			objBoundsInfo:objBoundsInfo,
 			toDelete:Object.keys(existingObjects),
 			camera:camPos,
 			messageNumber:messageNumber++
