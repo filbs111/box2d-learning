@@ -328,7 +328,16 @@ function draw_world(world, context, remainderFraction) {
 	  
 	  var shapes = existingDrawInfo[id];
 	  	  
-	  if (thisPos && (!existingBoundsInfo[id] || (id%30==20) ) ){	//drawing all results in slowdown since no culling for this yet. TODO culling by bounds
+		 
+	if (thisPos){
+ 
+	  var bounds = existingBoundsInfo[id];
+	  if (bounds){
+		//confirm is within bounds of screen. could make faster check by convoluting bounds with screen size
+		if (screenBounds.left>bounds.right || screenBounds.top>bounds.bottom || screenBounds.right<bounds.left || screenBounds.bottom<bounds.top){
+			continue;
+		}
+	  }
 		  
 	  for (sss in shapes){
 		thisShape = shapes[sss];
