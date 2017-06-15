@@ -34,7 +34,9 @@ var guiParams={
 	tunneling:false,
 	drill:true,
 	torqueAllSegs:false,
-	paused:false
+	paused:false,
+	drawFromWorker:true,
+	drawNormal:true,
 }
 
 var worker = new Worker('js/worker.js');
@@ -50,6 +52,8 @@ function start(){
 	gui.add(guiParams, 'drill');
 	gui.add(guiParams, 'torqueAllSegs');
 	gui.add(guiParams, 'paused');
+	gui.add(guiParams, 'drawFromWorker');
+	gui.add(guiParams, 'drawNormal');
 	
 	debugCanvas = document.getElementById("b2dCanvas");
     debugCtx = debugCanvas.getContext("2d");
@@ -193,7 +197,6 @@ function calcInterpPositions(remainderFraction){
 }
 
 var drawingScale;
-var skipLandsDraw=false;
 
 var existingDrawInfo=[];
 var existingBoundsInfo=[];
@@ -237,21 +240,111 @@ function draw_world(world, context, remainderFraction) {
    }
    //console.log("num player contacts : " + playerContactCount);
   
-  //Draw the bodies
-  for (var b = world.GetBodyList(); b; b = b.GetNext()) {
-	  
-	context.fillStyle= b.color || "#AAAAAA";
+  if (guiParams.drawNormal){
+	  //Draw the bodies
+	  for (var b = world.GetBodyList(); b; b = b.GetNext()) {
+		  
+		context.fillStyle= b.color || "#AAAAAA";
 
-	if (b.clippablePath){
-		if (skipLandsDraw){continue;}
-		//custom path, possibly convex with holes, which box2d sees as just a series of edges.
-		//separately draw it using canvas.
-		//code very similar to code that sets up fixtures.
-		
-		//try simply clipping the landscape to the screen rectangle. this may give performance,
-		//depending on how canvas speed (and speed of clip shape -> canvas commands)compares with clipper.js speed. guess canvas is clipping internally anyway.
-		
-		var cPath = b.clippablePath;
+		if (b.clippablePath){
+			if (!guiParams.drawNormal){continue;}
+			//custom path, possibly convex with holes, which box2d sees as just a series of edges.
+			//separately draw it using canvas.
+			//code very similar to code that sets up fixtures.
+			
+			//try simply clipping the landscape to the screen rectangle. this may give performance,
+			//depending on how canvas speed (and speed of clip shape -> canvas commands)compares with clipper.js speed. guess canvas is clipping internally anyway.
+			
+			var cPath = b.clippablePath;
+	 
+			var numLoops = cPath.length;
+			var numPoints;
+			if (numLoops==0){
+				console.log("no loops in clippable path. this is unexpected");
+				continue;
+			} else {
+				
+				//confirm is within bounds of screen.
+				//could make faster check by convoluting bounds with screen size
+				var bounds = b.bounds;
+				if (screenBounds.left>bounds.right || screenBounds.top>bounds.bottom || screenBounds.right<bounds.left || screenBounds.bottom<bounds.top){
+					continue;
+				}
+				
+				var thisLoop;
+				context.beginPath()
+				for (var ii=0;ii<numLoops;ii++){
+					thisLoop = cPath[ii];
+					numPoints = thisLoop.length;
+					context.moveTo( thisLoop[0].X * drawingScale/SCALE, thisLoop[0].Y * drawingScale/SCALE);
+					for (var jj=1;jj<numPoints;jj++){
+						context.lineTo( thisLoop[jj].X * drawingScale/SCALE, thisLoop[jj].Y * drawingScale/SCALE);
+					}
+					context.closePath();
+				}
+			}
+			
+			var grd=ctx.createLinearGradient( 0 ,b.bounds.top*drawingScale/SCALE, 0,b.bounds.bottom*drawingScale/SCALE);
+
+			if (b.mightCollide){
+				grd.addColorStop(0,"rgba(255, 0, 200, 1)");
+				grd.addColorStop(0.1,"rgba(150, 5, 125, 1)");
+				grd.addColorStop(0.95,"rgba(150, 5, 125, 1)");
+			}else{
+				grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
+				grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
+				grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");
+			}
+			context.fillStyle=grd;
+			
+			context.fill();
+			//context.stroke();
+			
+		}
+		else{
+			//A body has many fixtures
+			for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
+			  var shape = f.GetShape();
+			  if (isNaN(b.GetPosition().x)) {
+				alert('Invalid Position : ' + b.GetPosition().x);
+			  } else {
+				drawShape(b, shape, context, remainderFraction);
+			  }
+			}
+		}
+	  }
+  } //endif drawNormal
+  
+  ctx.globalCompositeOperation = "lighter";
+  for (var e in explosions){
+	explosions[e].draw();
+  }
+  ctx.globalCompositeOperation = "source-over"; //set back to default
+  
+  
+  if (guiParams.drawFromWorker){
+  
+  //draw the player position from the worker. (test mechanics same in both instances)
+  var camPosWorker = transformsFromWorker.camera;
+  ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
+  
+  context.fillStyle="rgba(0,0,0,0.4)";
+
+  for (id in existingPoseInfo){
+	  var thisTransform = existingPoseInfo[id];
+	  var thisPos= thisTransform.position;
+	  var thisRMat = thisTransform.R;
+	  
+	  var shapes = existingDrawInfo[id];
+	  	  
+		 
+	if (thisPos){
+ 
+	  var bounds = existingBoundsInfo[id];
+	  if (bounds){
+		  
+		//draw landscape
+		var cPath = shapes;
  
 		var numLoops = cPath.length;
 		var numPoints;
@@ -262,7 +355,6 @@ function draw_world(world, context, remainderFraction) {
 			
 			//confirm is within bounds of screen.
 			//could make faster check by convoluting bounds with screen size
-			var bounds = b.bounds;
 			if (screenBounds.left>bounds.right || screenBounds.top>bounds.bottom || screenBounds.right<bounds.left || screenBounds.bottom<bounds.top){
 				continue;
 			}
@@ -279,106 +371,58 @@ function draw_world(world, context, remainderFraction) {
 				context.closePath();
 			}
 		}
-		
+		/*
 		var grd=ctx.createLinearGradient( 0 ,b.bounds.top*drawingScale/SCALE, 0,b.bounds.bottom*drawingScale/SCALE);
-
-		if (b.mightCollide){
-			grd.addColorStop(0,"rgba(255, 0, 200, 1)");
-			grd.addColorStop(0.1,"rgba(150, 5, 125, 1)");
-			grd.addColorStop(0.95,"rgba(150, 5, 125, 1)");
-		}else{
-			grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
-			grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
-			grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");
-		}
+		grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
+		grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
+		grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");
 		context.fillStyle=grd;
-		
+		*/
 		context.fill();
-		//context.stroke();
 		
-	}
-	else{
-		//A body has many fixtures
-		for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
-		  var shape = f.GetShape();
-		  if (isNaN(b.GetPosition().x)) {
-			alert('Invalid Position : ' + b.GetPosition().x);
-		  } else {
-			drawShape(b, shape, context, remainderFraction);
+	  }else{
+		  for (sss in shapes){
+			thisShape = shapes[sss];
+			switch(thisShape.type){
+				case b2Shape.e_circleShape:
+					ctx.beginPath();
+					ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,thisShape.radius*drawingScale,0,2*Math.PI);
+					//ctx.stroke();
+					ctx.fill();
+					break;
+				case b2Shape.e_polygonShape:
+					ctx.beginPath();
+					var verts = thisShape.verts;
+					var transformedverts=[];
+					
+					for (var ii=0;ii<verts.length;ii++){
+						var thisVert = verts[ii];
+						transformedverts.push({
+							x:thisPos.x + thisVert.x*thisRMat.col1.x + thisVert.y*thisRMat.col2.x ,
+							y:thisPos.y + thisVert.x*thisRMat.col1.y + thisVert.y*thisRMat.col2.y 
+						});
+					}
+					
+					context.moveTo(transformedverts[verts.length-1].x * drawingScale, 
+									transformedverts[verts.length-1].y * drawingScale);
+					for (var i = 0; i < verts.length; i++) {
+						context.lineTo(transformedverts[i].x * drawingScale, 
+									transformedverts[i].y * drawingScale);
+					}
+					ctx.fill();
+
+					//ctx.stroke();
+					break;
+			}
 		  }
-		}
-	}
-  }
-  
-  ctx.globalCompositeOperation = "lighter";
-  for (var e in explosions){
-	explosions[e].draw();
-  }
-  ctx.globalCompositeOperation = "source-over"; //set back to default
-  
-  //draw the player position from the worker. (test mechanics same in both instances)
-  var camPosWorker = transformsFromWorker.camera;
-  ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
-  
-  context.fillStyle="#000";
-  for (id in existingPoseInfo){
-	  var thisTransform = existingPoseInfo[id];
-	  var thisPos= thisTransform.position;
-	  var thisRMat = thisTransform.R;
-	  
-	  var shapes = existingDrawInfo[id];
-	  	  
-		 
-	if (thisPos){
- 
-	  var bounds = existingBoundsInfo[id];
-	  if (bounds){
-		//confirm is within bounds of screen. could make faster check by convoluting bounds with screen size
-		if (screenBounds.left>bounds.right || screenBounds.top>bounds.bottom || screenBounds.right<bounds.left || screenBounds.bottom<bounds.top){
-			continue;
-		}
-	  }
-		  
-	  for (sss in shapes){
-		thisShape = shapes[sss];
-		switch(thisShape.type){
-			case b2Shape.e_circleShape:
-				ctx.beginPath();
-				ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,thisShape.radius*drawingScale,0,2*Math.PI);
-				ctx.stroke();
-				break;
-			case b2Shape.e_polygonShape:
-				ctx.beginPath();
-				var verts = thisShape.verts;
-				var transformedverts=[];
-				
-				for (var ii=0;ii<verts.length;ii++){
-					var thisVert = verts[ii];
-					transformedverts.push({
-						x:thisPos.x + thisVert.x*thisRMat.col1.x + thisVert.y*thisRMat.col2.x ,
-						y:thisPos.y + thisVert.x*thisRMat.col1.y + thisVert.y*thisRMat.col2.y 
-					});
-				}
-				
-				context.moveTo(transformedverts[verts.length-1].x * drawingScale, 
-								transformedverts[verts.length-1].y * drawingScale);
-				for (var i = 0; i < verts.length; i++) {
-					context.lineTo(transformedverts[i].x * drawingScale, 
-								transformedverts[i].y * drawingScale);
-				}
-				
-				ctx.stroke();
-				break;
-		}
 	  }
 	  
-		ctx.fillText(id, 10+thisPos.x*drawingScale,thisPos.y*drawingScale );
-	  } else {
-		//console.log("no position !!!!! " + JSON.stringify(thisTransform) + " , " + JSON.stringify(objDrawInfo[id]) + " , " +  JSON.stringify(existingDrawInfo[id]) );
-	  }
+		//ctx.fillText(id, 10+thisPos.x*drawingScale,thisPos.y*drawingScale );
+	  } 
 	  
   }
   
+  }	//end if draw from worker
   
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   //var startWater = canvas.height/2; //Math.max(0,)

@@ -49,23 +49,29 @@ self.onmessage = function(e) {
 														// (rotation matrix can be reconstructed)
 					existingPoseInfoStringified[b.uniqueId]=stringifiedTransform;
 				}
-					
+				
+						
 				var shapes = [];	//normally only 1 shape in array
-				for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
-				  var shape = f.GetShape();
-				  var shapeOut = {};
-				  var shapeType = shape.GetType();
-				  shapeOut.type = shapeType;
-				  switch (shapeType){
-					  case b2Shape.e_circleShape:
-						shapeOut.radius = shape.GetRadius();
-						break;
-					  case b2Shape.e_polygonShape:
-						shapeOut.verts = shape.GetVertices();
-						break;
-				  }
-				  shapes.push(shapeOut);
-				};
+				
+				if (!b.clippablePath){		
+					for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
+					  var shape = f.GetShape();
+					  var shapeOut = {};
+					  var shapeType = shape.GetType();
+					  shapeOut.type = shapeType;
+					  switch (shapeType){
+						  case b2Shape.e_circleShape:
+							shapeOut.radius = shape.GetRadius();
+							break;
+						  case b2Shape.e_polygonShape:
+							shapeOut.verts = shape.GetVertices();
+							break;
+					  }
+					  shapes.push(shapeOut);
+					};
+				}else{	//landscape
+					shapes = b.clippablePath;	//different units to non landscape, but for now just handle differently when drawing.
+				}
 				
 				var currentDrawInfo = existingDrawInfoStringified[b.uniqueId];	// || "";
 				if (!currentDrawInfo || b.shouldSend){	//to test that stringifying (for comparision) isn't cause of slowness, turn off.  
