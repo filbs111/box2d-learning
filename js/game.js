@@ -91,15 +91,12 @@ function start(){
 			  if (thisTransform){
 				  existingPoseInfo[id] = thisTransform;
 			  }
-	 
+			}
+			for (id in objDrawInfo){
 			  var shapes = objDrawInfo[id];
-			  //shapes might be false..
-			  if (shapes){
-					existingDrawInfo[id] = shapes;
-			  } 
-			  
+			  if (!shapes){alert("shapes is false!")}
+			  existingDrawInfo[id] = shapes;
 			  //console.log("pos : " + Object.keys(objTransforms).length + " , draw : " + Object.keys(objDrawInfo).length + " , delete : " + toDelete.length );
-			  
 			}
 		
 		}
@@ -323,9 +320,9 @@ function draw_world(world, context, remainderFraction) {
 	  var thisRMat = thisTransform.R;
 	  
 	  var shapes = existingDrawInfo[id];
-	  
-	  if (thisPos){	//should always have this...?!!
-	  
+	  	  
+	  if (thisPos && (id%30==20) ){	//drawing all results in slowdown since no culling for this yet. TODO culling by bounds
+		  
 	  for (sss in shapes){
 		thisShape = shapes[sss];
 		switch(thisShape.type){
@@ -361,7 +358,7 @@ function draw_world(world, context, remainderFraction) {
 	  
 		ctx.fillText(id, 10+thisPos.x*drawingScale,thisPos.y*drawingScale );
 	  } else {
-		console.log("no position !!!!! " + JSON.stringify(thisTransform) + " , " + JSON.stringify(objDrawInfo[id]) + " , " +  JSON.stringify(existingDrawInfo[id]) );
+		//console.log("no position !!!!! " + JSON.stringify(thisTransform) + " , " + JSON.stringify(objDrawInfo[id]) + " , " +  JSON.stringify(existingDrawInfo[id]) );
 	  }
 	  
   }

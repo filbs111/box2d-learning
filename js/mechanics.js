@@ -60,7 +60,6 @@ var timeStep = 1000/mechanicsFps;
 var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
 var maxUpdatesPerFrame = 3;
 
-
 var initscount=0;
 
 function init(){
@@ -509,6 +508,8 @@ function purgeLandscapeFixtures(body){
 		world.DestroyBody(body);
 		return -1;
 	}
+	
+	body.shouldSend = true;	//TODO check works correctly when destroy body. 
 }
 
 function updateLandscapeFixtures(body){
@@ -575,8 +576,9 @@ function updateLandscapeFixtures(body){
 	//	createdCount++;
 	}
 	//if (createdCount!=0){console.log("created " + createdCount + " fixtures");}
-	
+		
 	body.existingFixtures = newFixtureList;
+	
 }
 
 //var cpr;
