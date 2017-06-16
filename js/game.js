@@ -204,6 +204,7 @@ var existingPoseInfo=[];
 var lastMessageNumber =-1;
 
 function draw_world(world, context, remainderFraction) {
+	
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   
   var grd=ctx.createLinearGradient(0,0,0,canvas.height);
@@ -222,7 +223,6 @@ function draw_world(world, context, remainderFraction) {
 	  top: (drawingScale*camPosInterp.y - canvas.height/2)/(drawingScale/SCALE),
 	  bottom: (drawingScale*camPosInterp.y + canvas.height/2)/(drawingScale/SCALE)
   }
-  
   
   //highlight/dehighlight bodies touched by player
   var playerContactCount =0;
@@ -244,7 +244,7 @@ function draw_world(world, context, remainderFraction) {
 	  //Draw the bodies
 	  for (var b = world.GetBodyList(); b; b = b.GetNext()) {
 		  
-		context.fillStyle= b.color || "#AAAAAA";
+		context.fillStyle= b.color || "#AAA";
 
 		if (b.clippablePath){
 			if (!guiParams.drawNormal){continue;}
@@ -283,18 +283,17 @@ function draw_world(world, context, remainderFraction) {
 					context.closePath();
 				}
 			}
-			
+		
 			var grd=ctx.createLinearGradient( 0 ,b.bounds.top*drawingScale/SCALE, 0,b.bounds.bottom*drawingScale/SCALE);
-
-			if (b.mightCollide){
+			//if (b.mightCollide){
 				grd.addColorStop(0,"rgba(255, 0, 200, 1)");
 				grd.addColorStop(0.1,"rgba(150, 5, 125, 1)");
 				grd.addColorStop(0.95,"rgba(150, 5, 125, 1)");
-			}else{
-				grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
-				grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
-				grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");
-			}
+			//}else{
+			//    grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
+			//	grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
+			//	grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");	
+			//}
 			context.fillStyle=grd;
 			
 			context.fill();
@@ -314,6 +313,12 @@ function draw_world(world, context, remainderFraction) {
 		}
 	  }
 	  
+	  ctx.globalCompositeOperation = "lighter";
+	  for (var e in explosions){
+		explosions[e].draw();
+	  }
+	  ctx.globalCompositeOperation = "source-over"; //set back to default
+	  
 	  ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
 	  //var startWater = canvas.height/2; //Math.max(0,)
 	  var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+camPosInterp.y));
@@ -323,23 +328,25 @@ function draw_world(world, context, remainderFraction) {
 
 	  context.fillRect(0, startWater, canvas.width, endWater-startWater);	
 	  
-	  
   } //endif drawNormal
-  
-  ctx.globalCompositeOperation = "lighter";
-  for (var e in explosions){
-	explosions[e].draw();
-  }
-  ctx.globalCompositeOperation = "source-over"; //set back to default
+ 
   
   
   if (guiParams.drawFromWorker){
   
   //draw the player position from the worker. (test mechanics same in both instances)
   var camPosWorker = transformsFromWorker.camera;
+  
+  var screenBoundsWorker = {
+	  left: (drawingScale*camPosWorker.x - canvas.width/2)/(drawingScale/SCALE),
+	  right: (drawingScale*camPosWorker.x + canvas.width/2)/(drawingScale/SCALE),
+	  top: (drawingScale*camPosWorker.y - canvas.height/2)/(drawingScale/SCALE),
+	  bottom: (drawingScale*camPosWorker.y + canvas.height/2)/(drawingScale/SCALE)
+  }
+  
   ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
   
-  context.fillStyle="rgba(0,0,0,0.4)";
+  var stdFill="#aaa";
 
   for (id in existingPoseInfo){
 	  var thisTransform = existingPoseInfo[id];
@@ -366,7 +373,7 @@ function draw_world(world, context, remainderFraction) {
 			
 			//confirm is within bounds of screen.
 			//could make faster check by convoluting bounds with screen size
-			if (screenBounds.left>bounds.right || screenBounds.top>bounds.bottom || screenBounds.right<bounds.left || screenBounds.bottom<bounds.top){
+			if (screenBoundsWorker.left>bounds.right || screenBoundsWorker.top>bounds.bottom || screenBoundsWorker.right<bounds.left || screenBoundsWorker.bottom<bounds.top){
 				continue;
 			}
 			
@@ -382,13 +389,12 @@ function draw_world(world, context, remainderFraction) {
 				context.closePath();
 			}
 		}
-		/*
-		var grd=ctx.createLinearGradient( 0 ,b.bounds.top*drawingScale/SCALE, 0,b.bounds.bottom*drawingScale/SCALE);
-		grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
-		grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
-		grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");
+		
+		var grd=ctx.createLinearGradient( 0 ,bounds.top*drawingScale/SCALE, 0,bounds.bottom*drawingScale/SCALE);
+		grd.addColorStop(0,"rgba(255, 0, 200, 1)");
+		grd.addColorStop(0.1,"rgba(150, 5, 125, 1)");
+		grd.addColorStop(0.95,"rgba(150, 5, 125, 1)");	
 		context.fillStyle=grd;
-		*/
 		context.fill();
 		
 	  }else{
@@ -399,6 +405,16 @@ function draw_world(world, context, remainderFraction) {
 					ctx.beginPath();
 					ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,thisShape.radius*drawingScale,0,2*Math.PI);
 					//ctx.stroke();
+					
+					var r = thisShape.radius;
+					  //make gradient to cover the shape
+					  var grd=ctx.createLinearGradient( 0 ,(thisPos.y-r) * drawingScale,0,(thisPos.y+r)*drawingScale);
+					  grd.addColorStop(0,"#e7c");
+					  grd.addColorStop(0.3,"#b5b");
+					  grd.addColorStop(0.6,"#754");
+					  grd.addColorStop(1,"#883");
+					  context.fillStyle=grd;
+					
 					ctx.fill();
 					break;
 				case b2Shape.e_polygonShape:
@@ -420,6 +436,8 @@ function draw_world(world, context, remainderFraction) {
 						context.lineTo(transformedverts[i].x * drawingScale, 
 									transformedverts[i].y * drawingScale);
 					}
+					
+				    context.fillStyle=stdFill;
 					ctx.fill();
 
 					//ctx.stroke();
