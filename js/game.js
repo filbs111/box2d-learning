@@ -36,7 +36,7 @@ var guiParams={
 	torqueAllSegs:false,
 	paused:false,
 	drawFromWorker:true,
-	drawNormal:true,
+	drawNormal:false,
 }
 
 var worker = new Worker('js/worker.js');
@@ -76,6 +76,11 @@ function start(){
 		//console.log("received message from worker : " + e.data);
 		
 		if (e.data[0]=="transforms"){
+			awaitedUpdatesFromWorker--;
+			
+   		    camPosWorkerLast = camPosWorkerNew;
+			camPosWorkerNew = transformsFromWorker.camera;
+			
 			transformsFromWorker = e.data[1];
 			
 			var toDelete = transformsFromWorker.toDelete;
@@ -152,18 +157,18 @@ function update(timeNow) {
 		
 	   if (updatesRequired>1){
 		   for (var ii=1;ii<updatesRequired;ii++){
-			   iterateMechanics(inputObj);
+			   iterateMechanics(inputObj);  //for normal mechanics
 			   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
+			   awaitedUpdatesFromWorker++;
 		   }
 	   }
-	   copyPositions();
-	   iterateMechanics(inputObj);
+	   copyPositions(); //for normal mechanics
+	   iterateMechanics(inputObj); //for normal mechanics
 	   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
+	   awaitedUpdatesFromWorker++;
    }
    stats.begin();
-   //debugCtx.setTransform(1, 0, 0, 1, 100, 0);  //can transform debug canvas anyway, but should then also manually clear it
-   //world.DrawDebugData();
-   calcInterpPositions(remainderFraction);
+   calcInterpPositions(remainderFraction);	//for normal mechanics
    tagLandscapeBlocksNearPlayer();
    draw_world(world, ctx, remainderFraction);
    stats.end();
@@ -202,6 +207,9 @@ var existingDrawInfo=[];
 var existingBoundsInfo=[];
 var existingPoseInfo=[];
 var lastMessageNumber =-1;
+var camPosWorkerLast = {x:0,y:0}
+var camPosWorkerNew = {x:0,y:0}
+var awaitedUpdatesFromWorker=0;
 
 function draw_world(world, context, remainderFraction) {
 	
@@ -333,9 +341,24 @@ function draw_world(world, context, remainderFraction) {
   
   
   if (guiParams.drawFromWorker){
+	  
+	  
   
   //draw the player position from the worker. (test mechanics same in both instances)
-  var camPosWorker = transformsFromWorker.camera;
+  
+   //adjust remainderFraction to account for awaitedUpdatesFromWorker (default value is true if updates are returned instantaneously)
+  var adjRemainder = remainderFraction + awaitedUpdatesFromWorker - 0.5;	//0.5 guess- remainderFraction is from 0 to 1, awaitedUpdatesFromWorker is typically 0 or 1.
+  
+  //interpolate
+  var oneMinus = 1-adjRemainder;
+  
+  
+  
+  var camPosWorker = { x: camPosWorkerNew.x*adjRemainder + camPosWorkerLast.x*oneMinus,
+					y: camPosWorkerNew.y*adjRemainder + camPosWorkerLast.y*oneMinus};
+  
+  //TODO expect should use some different remainderFraction. existing doesn't work here because sending iterate message and receiving result is separate.
+  
   
   var screenBoundsWorker = {
 	  left: (drawingScale*camPosWorker.x - canvas.width/2)/(drawingScale/SCALE),
@@ -461,6 +484,17 @@ function draw_world(world, context, remainderFraction) {
   context.fillStyle="rgba(0, 100, 150, 0.5)";
 
   context.fillRect(0, startWater, canvas.width, endWater-startWater);	
+  
+  
+	context.fillStyle="#000";
+	ctx.fillText(awaitedUpdatesFromWorker, 10,10 );
+  
+  	  context.fillRect(20, 100, 20, 1);	
+	  context.fillRect(20, 100+100*adjRemainder, 40, 1);	
+
+	  
+	  context.fillRect(20, 200, 20, 1);	
+
   
   
   }	//end if draw from worker
