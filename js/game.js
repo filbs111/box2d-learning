@@ -157,18 +157,18 @@ function update(timeNow) {
 		
 	   if (updatesRequired>1){
 		   for (var ii=1;ii<updatesRequired;ii++){
-			   iterateMechanics(inputObj);  //for normal mechanics
+			   //iterateMechanics(inputObj);  //for normal mechanics
 			   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
 			   awaitedUpdatesFromWorker++;
 		   }
 	   }
-	   copyPositions(); //for normal mechanics
-	   iterateMechanics(inputObj); //for normal mechanics
+	   //copyPositions(); //for normal mechanics
+	   //iterateMechanics(inputObj); //for normal mechanics
 	   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
 	   awaitedUpdatesFromWorker++;
    }
    stats.begin();
-   calcInterpPositions(remainderFraction);	//for normal mechanics
+   //calcInterpPositions(remainderFraction);	//for normal mechanics
    tagLandscapeBlocksNearPlayer();
    draw_world(world, ctx, remainderFraction);
    stats.end();
