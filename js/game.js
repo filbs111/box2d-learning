@@ -41,6 +41,7 @@ var guiParams={
 
 var worker = new Worker('js/worker.js');
 var transformsFromWorker={objTransforms:{},camera:{x:0,y:0}};
+var windowProcessTimeAvg=0;
 
 function start(){	
 	stats = new Stats();
@@ -76,6 +77,7 @@ function start(){
 		//console.log("received message from worker : " + e.data);
 		
 		if (evt.data[0]=="transforms"){
+			var startTime = window.performance.now();	//ms
 			
 			//make a copy of existing positions. this is inefficient - better to not do for nonmoving obejcts,
 			//but since may change way do this anyway (transferable objects), keep simple for now
@@ -133,6 +135,8 @@ function start(){
 				new Explosion(thisExplosion.x, thisExplosion.y , 0,0, 2*relativeScale,0.5*relativeTimescale );
 			}
 		
+			var transformMessageProcessTime = window.performance.now() - startTime;
+			windowProcessTimeAvg = windowProcessTimeAvg*0.9 + 0.1*transformMessageProcessTime;	//starts too low but unimportant
 		}
 	}
 	
@@ -524,15 +528,13 @@ function draw_world(world, context, remainderFraction) {
   
   
 	context.fillStyle="#000";
-	ctx.fillText(awaitedUpdatesFromWorker, 10,10 );
-  
+	ctx.fillText(awaitedUpdatesFromWorker, 10,220 );
+	ctx.fillText(windowProcessTimeAvg.toFixed(4), 10,230 );
+	
   	  context.fillRect(20, 100, 20, 1);	
 	  context.fillRect(20, 100+100*adjRemainder, 40, 1);	
-
-	  
 	  context.fillRect(20, 200, 20, 1);	
 
-  
   
   }	//end if draw from worker
   
