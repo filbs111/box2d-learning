@@ -169,7 +169,13 @@ function update(timeNow) {
 	   remainderFraction=0;
 	   //console.log("!");
    }else{
-	   currentTime+=timeStep*updatesRequired;
+	   if (awaitedUpdatesFromWorker>1){	//hack to not let lots of mechanics get queued up
+		   updatesRequired = 0;
+		   currentTime = timeNow;
+		   remainderFraction=0;
+	   }else{
+			currentTime+=timeStep*updatesRequired;
+	   }
    }
    if (updatesRequired>0){
 	   var inputObj={
