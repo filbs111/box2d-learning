@@ -7,7 +7,7 @@ importScripts('../lib/seedrandom.min.js',
 			'../js-utils/settings.js');
 
 
-var existingDrawInfoStringified=[];
+var existingDrawInfoAvailable=[];
 var existingPoseInfoStringified=[];
 var messageNumber = 0;		
 
@@ -48,15 +48,25 @@ self.onmessage = function(e) {
 				
 				//assign a unique id if doesn't already have one
 				if (!b.uniqueId){b.uniqueId=nextId();}
-								
-				var stringifiedTransform = JSON.stringify(b.GetTransform());
-				if ( !existingPoseInfoStringified[b.uniqueId] || existingPoseInfoStringified[b.uniqueId] != stringifiedTransform ) {
-					objTransforms[b.uniqueId]=b.GetTransform();	//might optimise by only sending x,y for bombs, else x,y,rotation
-														// (rotation matrix can be reconstructed)
-					existingPoseInfoStringified[b.uniqueId]=stringifiedTransform;
-				}
 				
+				var thisTranform = b.GetTransform();
+				if (!b.clippablePath){
+					var stringifiedTransform = JSON.stringify(thisTranform);
+					if ( !existingPoseInfoStringified[b.uniqueId] || existingPoseInfoStringified[b.uniqueId] != stringifiedTransform ) {
+							objTransforms[b.uniqueId]=thisTranform;	//might optimise by only sending x,y for bombs, else x,y,rotation
+																			// (rotation matrix can be reconstructed)
+							existingPoseInfoStringified[b.uniqueId]=stringifiedTransform;
+					}
+				}else{
+					if (!existingPoseInfoStringified[b.uniqueId]){
+						objTransforms[b.uniqueId]=thisTranform;
+						existingPoseInfoStringified[b.uniqueId]=true;
+					}
+				}
 						
+				if (!existingDrawInfoAvailable[b.uniqueId] || b.shouldSend){	//to test that stringifying (for comparision) isn't cause of slowness, turn off. 
+				b.shouldSend = false;
+				
 				var shapes = [];	//normally only 1 shape in array
 				
 				if (!b.clippablePath){		
@@ -79,14 +89,10 @@ self.onmessage = function(e) {
 					shapes = b.clippablePath;	//different units to non landscape, but for now just handle differently when drawing.
 				}
 				
-				var currentDrawInfo = existingDrawInfoStringified[b.uniqueId];	// || "";
-				if (!currentDrawInfo || b.shouldSend){	//to test that stringifying (for comparision) isn't cause of slowness, turn off.  
-				b.shouldSend = false;
-				var jsonshapes = JSON.stringify(shapes);	//TODO flag objects for re-send when edit landscape
 				//if (currentDrawInfo != jsonshapes ){
 					objBoundsInfo[b.uniqueId]=b.bounds;
 					objDrawInfo[b.uniqueId]=shapes;
-					existingDrawInfoStringified[b.uniqueId] = jsonshapes;
+					existingDrawInfoAvailable[b.uniqueId] = true;
 				}
 								
 				//remove uniqueId
@@ -95,7 +101,7 @@ self.onmessage = function(e) {
 			}
 						
 			for (var ii in existingObjects){	//now things that don't exist
-				delete existingDrawInfoStringified[ii];
+				delete existingDrawInfoAvailable[ii];
 				delete existingPoseInfoStringified[ii];
 			}
 			
