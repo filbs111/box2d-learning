@@ -76,6 +76,13 @@ function start(){
 		//console.log("received message from worker : " + e.data);
 		
 		if (e.data[0]=="transforms"){
+			
+			//make a copy of existing positions. this is inefficient - better to not do for nonmoving obejcts,
+			//but since may change way do this anyway (transferable objects), keep simple for now
+			for (var id in existingPoseInfo){
+				existingPoseInfoLast[id] = existingPoseInfo[id];
+			}
+			
 			awaitedUpdatesFromWorker--;
 			
    		    camPosWorkerLast = camPosWorkerNew;
@@ -206,6 +213,7 @@ var drawingScale;
 var existingDrawInfo=[];
 var existingBoundsInfo=[];
 var existingPoseInfo=[];
+var existingPoseInfoLast=[];
 var lastMessageNumber =-1;
 var camPosWorkerLast = {x:0,y:0}
 var camPosWorkerNew = {x:0,y:0}
@@ -349,6 +357,9 @@ function draw_world(world, context, remainderFraction) {
    //adjust remainderFraction to account for awaitedUpdatesFromWorker (default value is true if updates are returned instantaneously)
   var adjRemainder = remainderFraction + awaitedUpdatesFromWorker - 0.5;	//0.5 guess- remainderFraction is from 0 to 1, awaitedUpdatesFromWorker is typically 0 or 1.
   
+  //cap from 0 to 1 to avoid drawing bullets in walls etc. actually doesn't seem to help. TODO better scheduling. 
+  //adjRemainder = Math.max(0,Math.min(1,adjRemainder));
+  
   //interpolate
   var oneMinus = 1-adjRemainder;
   
@@ -373,13 +384,21 @@ function draw_world(world, context, remainderFraction) {
 
   for (id in existingPoseInfo){
 	  var thisTransform = existingPoseInfo[id];
-	  var thisPos= thisTransform.position;
-	  var thisRMat = thisTransform.R;
+	  var thisPos = thisTransform.position;
+	  var interpPos;
+      var lastTransform = existingPoseInfoLast[id];
+	  if (lastTransform){
+		var lastPos = lastTransform.position;
+		interpPos= {x: thisPos.x*adjRemainder + lastPos.x*oneMinus,
+					y: thisPos.y*adjRemainder + lastPos.y*oneMinus};
+	  }
+	  
+	  var thisRMat = thisTransform.R;	//TODO interpolate
 	  
 	  var shapes = existingDrawInfo[id];
 	  	  
 		 
-	if (thisPos){
+	if (interpPos){
  
 	  var bounds = existingBoundsInfo[id];
 	  if (bounds){
@@ -426,12 +445,12 @@ function draw_world(world, context, remainderFraction) {
 			switch(thisShape.type){
 				case b2Shape.e_circleShape:
 					ctx.beginPath();
-					ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,thisShape.radius*drawingScale,0,2*Math.PI);
+					ctx.arc(interpPos.x*drawingScale,interpPos.y*drawingScale,thisShape.radius*drawingScale,0,2*Math.PI);
 					//ctx.stroke();
 					
 					var r = thisShape.radius;
 					  //make gradient to cover the shape
-					  var grd=ctx.createLinearGradient( 0 ,(thisPos.y-r) * drawingScale,0,(thisPos.y+r)*drawingScale);
+					  var grd=ctx.createLinearGradient( 0 ,(interpPos.y-r) * drawingScale,0,(interpPos.y+r)*drawingScale);
 					  grd.addColorStop(0,"#e7c");
 					  grd.addColorStop(0.3,"#b5b");
 					  grd.addColorStop(0.6,"#754");
@@ -448,8 +467,8 @@ function draw_world(world, context, remainderFraction) {
 					for (var ii=0;ii<verts.length;ii++){
 						var thisVert = verts[ii];
 						transformedverts.push({
-							x:thisPos.x + thisVert.x*thisRMat.col1.x + thisVert.y*thisRMat.col2.x ,
-							y:thisPos.y + thisVert.x*thisRMat.col1.y + thisVert.y*thisRMat.col2.y 
+							x:interpPos.x + thisVert.x*thisRMat.col1.x + thisVert.y*thisRMat.col2.x ,
+							y:interpPos.y + thisVert.x*thisRMat.col1.y + thisVert.y*thisRMat.col2.y 
 						});
 					}
 					
@@ -469,7 +488,7 @@ function draw_world(world, context, remainderFraction) {
 		  }
 	  }
 	  
-		//ctx.fillText(id, 10+thisPos.x*drawingScale,thisPos.y*drawingScale );
+		//ctx.fillText(id, 10+interpPos.x*drawingScale,interpPos.y*drawingScale );
 	  } 
 	  
   }
