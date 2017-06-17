@@ -35,8 +35,6 @@ var guiParams={
 	drill:true,
 	torqueAllSegs:false,
 	paused:false,
-	drawFromWorker:true,
-	drawNormal:false,
 }
 
 var worker = new Worker('js/worker.js');
@@ -55,8 +53,6 @@ function start(){
 	gui.add(guiParams, 'drill');
 	gui.add(guiParams, 'torqueAllSegs');
 	gui.add(guiParams, 'paused');
-	gui.add(guiParams, 'drawFromWorker');
-	gui.add(guiParams, 'drawNormal');
 	
 	debugCanvas = document.getElementById("b2dCanvas");
     debugCtx = debugCanvas.getContext("2d");
@@ -132,7 +128,6 @@ function start(){
 			
 			var newExplosions=transformsFromWorker.explosions;
 			for (id in newExplosions){
-				console.log("new explosion!");
 				var thisExplosion = newExplosions[id];
 				new Explosion(thisExplosion.x, thisExplosion.y , 0,0, 2*relativeScale,0.5*relativeTimescale );
 			}
@@ -187,18 +182,14 @@ function update(timeNow) {
 		
 	   if (updatesRequired>1){
 		   for (var ii=1;ii<updatesRequired;ii++){
-			   //iterateMechanics(inputObj);  //for normal mechanics
 			   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
 			   awaitedUpdatesFromWorker++;
 		   }
 	   }
-	   //copyPositions(); //for normal mechanics
-	   //iterateMechanics(inputObj); //for normal mechanics
 	   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
 	   awaitedUpdatesFromWorker++;
    }
    stats.begin();
-   //calcInterpPositions(remainderFraction);	//for normal mechanics
    tagLandscapeBlocksNearPlayer();
    draw_world(world, ctx, remainderFraction);
    stats.end();
@@ -206,30 +197,6 @@ function update(timeNow) {
    
 }; // update()
 
-
-function copyPositions(){
-   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
-	    var currentPos = b.GetTransform().position;
-		b.oldPos = b.oldPos || new b2Vec2();
-		b.oldPos.Set(currentPos.x, currentPos.y);
-	}
-}
-function calcInterpPositions(remainderFraction){
-	var oneMinus = 1-remainderFraction;
-	for (var b = world.GetBodyList(); b; b = b.GetNext()) {
-		var oldPos = b.oldPos;
-		if (oldPos){
-			var currentPos = b.GetTransform().position;
-			b.interpPos = new b2Vec2();
-			b.interpPos.Set(currentPos.x*remainderFraction + oldPos.x*oneMinus,
-							currentPos.y*remainderFraction + oldPos.y*oneMinus );
-		}
-	}
-	
-	camPosInterp = camVel.Copy();
-	camPosInterp.Multiply(-oneMinus);
-	camPosInterp.Add(camPos);
-}
 
 var drawingScale;
 
@@ -278,102 +245,8 @@ function draw_world(world, context, remainderFraction) {
 		}
    }
    //console.log("num player contacts : " + playerContactCount);
+    
   
-  if (guiParams.drawNormal){
-	  //Draw the bodies
-	  for (var b = world.GetBodyList(); b; b = b.GetNext()) {
-		  
-		context.fillStyle= b.color || "#AAA";
-
-		if (b.clippablePath){
-			if (!guiParams.drawNormal){continue;}
-			//custom path, possibly convex with holes, which box2d sees as just a series of edges.
-			//separately draw it using canvas.
-			//code very similar to code that sets up fixtures.
-			
-			//try simply clipping the landscape to the screen rectangle. this may give performance,
-			//depending on how canvas speed (and speed of clip shape -> canvas commands)compares with clipper.js speed. guess canvas is clipping internally anyway.
-			
-			var cPath = b.clippablePath;
-	 
-			var numLoops = cPath.length;
-			var numPoints;
-			if (numLoops==0){
-				console.log("no loops in clippable path. this is unexpected");
-				continue;
-			} else {
-				
-				//confirm is within bounds of screen.
-				//could make faster check by convoluting bounds with screen size
-				var bounds = b.bounds;
-				if (screenBounds.left>bounds.right || screenBounds.top>bounds.bottom || screenBounds.right<bounds.left || screenBounds.bottom<bounds.top){
-					continue;
-				}
-				
-				var thisLoop;
-				context.beginPath()
-				for (var ii=0;ii<numLoops;ii++){
-					thisLoop = cPath[ii];
-					numPoints = thisLoop.length;
-					context.moveTo( thisLoop[0].X * drawingScale/SCALE, thisLoop[0].Y * drawingScale/SCALE);
-					for (var jj=1;jj<numPoints;jj++){
-						context.lineTo( thisLoop[jj].X * drawingScale/SCALE, thisLoop[jj].Y * drawingScale/SCALE);
-					}
-					context.closePath();
-				}
-			}
-		
-			var grd=ctx.createLinearGradient( 0 ,b.bounds.top*drawingScale/SCALE, 0,b.bounds.bottom*drawingScale/SCALE);
-			//if (b.mightCollide){
-				grd.addColorStop(0,"rgba(255, 0, 200, 1)");
-				grd.addColorStop(0.1,"rgba(150, 5, 125, 1)");
-				grd.addColorStop(0.95,"rgba(150, 5, 125, 1)");
-			//}else{
-			//    grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
-			//	grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
-			//	grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");	
-			//}
-			context.fillStyle=grd;
-			
-			context.fill();
-			//context.stroke();
-			
-		}
-		else{
-			//A body has many fixtures
-			for (var f = b.GetFixtureList(); f != null; f = f.GetNext()) {
-			  var shape = f.GetShape();
-			  if (isNaN(b.GetPosition().x)) {
-				alert('Invalid Position : ' + b.GetPosition().x);
-			  } else {
-				drawShape(b, shape, context, remainderFraction);
-			  }
-			}
-		}
-	  }
-	  
-	  ctx.globalCompositeOperation = "lighter";
-	  for (var e in explosions){
-		explosions[e].draw();
-	  }
-	  ctx.globalCompositeOperation = "source-over"; //set back to default
-	  
-	  ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
-	  //var startWater = canvas.height/2; //Math.max(0,)
-	  var startWater = Math.max(0, canvas.height/2-drawingScale*(waterLevel+camPosInterp.y));
-	  var endWater = canvas.height;
-	  //context.fillStyle="rgba(0, 150, 75, 0.5)";
-	  context.fillStyle="rgba(0, 100, 150, 0.5)";
-
-	  context.fillRect(0, startWater, canvas.width, endWater-startWater);	
-	  
-  } //endif drawNormal
- 
-  
-  
-  if (guiParams.drawFromWorker){
-	  
-	  
   
   //draw the player position from the worker. (test mechanics same in both instances)
   
@@ -456,9 +329,9 @@ function draw_world(world, context, remainderFraction) {
 		}
 		
 		var grd=ctx.createLinearGradient( 0 ,bounds.top*drawingScale/SCALE, 0,bounds.bottom*drawingScale/SCALE);
-		grd.addColorStop(0,"rgba(255, 0, 200, 1)");
-		grd.addColorStop(0.1,"rgba(150, 5, 125, 1)");
-		grd.addColorStop(0.95,"rgba(150, 5, 125, 1)");	
+		grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
+		grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
+		grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");		
 		context.fillStyle=grd;
 		context.fill();
 		
@@ -545,7 +418,6 @@ function draw_world(world, context, remainderFraction) {
 	  context.fillRect(20, 200, 20, 1);	
 
   
-  }	//end if draw from worker
   
   
   

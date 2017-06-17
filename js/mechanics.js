@@ -727,7 +727,6 @@ function dropBomb(){
 
 function detonateBody(b){
 	var bodyPos = b.GetTransform().position;
-	//new Explosion(bodyPos.x, bodyPos.y , 0,0, 2*relativeScale,0.5*relativeTimescale );	//TODO remove since not useful within worker
 	queueExplosionMessage(bodyPos.x, bodyPos.y);
 	createBlast(bodyPos);
 	//destroy_list.push(b);
@@ -880,11 +879,6 @@ function iterateMechanics(inputObj){
 	   playerBody.ApplyForce(new b2Vec2(0,-20*forceScale*inputObj.space), 
 							playerBody.GetWorldCenter());	//upward force when press space key
 
-	   
-	   
-	   for (var e in explosions){
-		  explosions[e].iterate();	//TODO remove (not used in within worker)
-	   }
 	   
 	   for (var b = world.GetBodyList(); b; b = b.GetNext()) {
 	      if (b.countdown){
