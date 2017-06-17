@@ -54,7 +54,6 @@ var world;
 var bC;
 var waterLevel = -875/SCALE;
 
-
 var mechanicsFps = 15;
 var timeStep = 1000/mechanicsFps;
 var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
@@ -78,8 +77,8 @@ function init(){
 	bC.offset = waterLevel;	// set the offset from the top of the canvas
 	bC.density = 2;			// set the water density
 	bC.linearDrag = 5;		// set linear drag
-		
-	 
+	
+	
     var fixDef = new b2FixtureDef;
     fixDef.density = 1.0;
     fixDef.friction = 0.5;
@@ -348,9 +347,10 @@ function init(){
 
 		//add all bodies to buoyancy controller
 		for (var b = world.GetBodyList(); b; b = b.GetNext()) {
-			bC.AddBody(b);
+			if (!b.clippablePath){
+				bC.AddBody(b);
+			}
 		}
-	   
 	   //copyPositions();	//this may not make sense in worker.
 }; // init()
 
