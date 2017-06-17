@@ -223,6 +223,8 @@ function init(){
 		for (var ii=0;ii<numBlocks;ii++){
 			//create a new body
 			var thisGridInfo = gridOfPaths[ii];
+			landscapeBodyDef.position.x = thisGridInfo.bounds.left /SCALE;
+			landscapeBodyDef.position.y = thisGridInfo.bounds.top /SCALE;
 			var thisBody = world.CreateBody(landscapeBodyDef);
 			thisBody.clippablePath = thisGridInfo.paths;
 			thisBody.bounds = thisGridInfo.bounds;
@@ -515,11 +517,14 @@ function purgeLandscapeFixtures(body){
 
 function updateLandscapeFixtures(body){
 	
+	var cornerPos = {x:body.bounds.left, y: body.bounds.top};
+	
 	var fixDef = new b2FixtureDef;
     fixDef.density = 1.0;
     fixDef.friction = 0.5;
     fixDef.restitution = 0.2; 
 	fixDef.shape = new b2PolygonShape;
+	//fixDef.filter.maskBits=7;	//collide with other stuff but not other landscape
 	fixDef.filter.categoryBits=8;	//its own category.
 	
 	var oldFixtures= body.existingFixtures || {};	//TODO remove || {} by creating this elsewhere
@@ -572,7 +577,8 @@ function updateLandscapeFixtures(body){
 	for (var ii in toMakeList){
 		fix=toMakeList[ii];
 		parsedFix = JSON.parse(fix);
-		fixDef.shape.SetAsEdge(new b2Vec2(parsedFix[0] / SCALE, parsedFix[1] / SCALE), new b2Vec2(parsedFix[2] / SCALE, parsedFix[3] / SCALE));
+		fixDef.shape.SetAsEdge(new b2Vec2( (parsedFix[0]- cornerPos.x) / SCALE , (parsedFix[1]- cornerPos.y) / SCALE ), 
+								new b2Vec2( (parsedFix[2]- cornerPos.x) / SCALE , (parsedFix[3]- cornerPos.y) / SCALE ));
 		newFixtureList[fix]=body.CreateFixture(fixDef);
 	//	createdCount++;
 	}
