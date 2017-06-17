@@ -100,8 +100,11 @@ self.onmessage = function(e) {
 			objBoundsInfo:objBoundsInfo,
 			toDelete:Object.keys(existingObjects),
 			camera:camPos,
+			explosions:explosionMessageList,
 			messageNumber:messageNumber++
 			}]);
+			
+			explosionMessageList=[];
 			
 			break;
 		case "guiParams":
@@ -133,6 +136,11 @@ function applyGuiParamsUpdate(data){
 	
 	console.log("set guiParams in worker:");
 	console.log(guiParams);
+}
+
+var explosionMessageList = [];
+function queueExplosionMessage(x, y){
+	explosionMessageList.push({x:x,y:y});
 }
 
 init();

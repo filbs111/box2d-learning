@@ -380,7 +380,8 @@ function chopIntoGrid(landsPath){
 	var bounds = ClipperLib.Clipper.GetBounds(landsPath);
 	var xstep = (bounds.right-bounds.left)/gridDivs;
 	var ystep = (bounds.bottom-bounds.top)/gridDivs;
-	var gap=5;	//for illustration. TODO remove
+	//var gap=5;	//for illustration. TODO remove
+	var gap=0;
 	//chop each block out. 
 	//chop into lines first - probably not quite as fast as binary chopping, but unimportant
 	
@@ -720,7 +721,8 @@ function dropBomb(){
 
 function detonateBody(b){
 	var bodyPos = b.GetTransform().position;
-	new Explosion(bodyPos.x, bodyPos.y , 0,0, 2*relativeScale,0.5*relativeTimescale );
+	//new Explosion(bodyPos.x, bodyPos.y , 0,0, 2*relativeScale,0.5*relativeTimescale );	//TODO remove since not useful within worker
+	queueExplosionMessage(bodyPos.x, bodyPos.y);
 	createBlast(bodyPos);
 	//destroy_list.push(b);
 	b.shouldDestroy=true;
@@ -875,7 +877,7 @@ function iterateMechanics(inputObj){
 	   
 	   
 	   for (var e in explosions){
-		  explosions[e].iterate();
+		  explosions[e].iterate();	//TODO remove (not used in within worker)
 	   }
 	   
 	   for (var b = world.GetBodyList(); b; b = b.GetNext()) {

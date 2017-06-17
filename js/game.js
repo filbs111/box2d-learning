@@ -72,10 +72,10 @@ function start(){
 		goFullscreen(canvas);
 	});
 	
-	worker.onmessage=function(e){
+	worker.onmessage=function(evt){
 		//console.log("received message from worker : " + e.data);
 		
-		if (e.data[0]=="transforms"){
+		if (evt.data[0]=="transforms"){
 			
 			//make a copy of existing positions. this is inefficient - better to not do for nonmoving obejcts,
 			//but since may change way do this anyway (transferable objects), keep simple for now
@@ -88,7 +88,12 @@ function start(){
    		    camPosWorkerLast = camPosWorkerNew;
 			camPosWorkerNew = transformsFromWorker.camera;
 			
-			transformsFromWorker = e.data[1];
+			transformsFromWorker = evt.data[1];
+			
+			//cosmetic explosion iteration
+			for (var e in explosions){
+				explosions[e].iterate();
+			}
 			
 			var toDelete = transformsFromWorker.toDelete;
 			for (var ii in toDelete){
@@ -119,6 +124,13 @@ function start(){
 			for (id in objBoundsInfo){
 			  var shapes = objDrawInfo[id];
 			  existingBoundsInfo[id] = objBoundsInfo[id];
+			}
+			
+			var newExplosions=transformsFromWorker.explosions;
+			for (id in newExplosions){
+				console.log("new explosion!");
+				var thisExplosion = newExplosions[id];
+				new Explosion(thisExplosion.x, thisExplosion.y , 0,0, 2*relativeScale,0.5*relativeTimescale );
 			}
 		
 		}
@@ -494,6 +506,12 @@ function draw_world(world, context, remainderFraction) {
   }
   
   
+   ctx.globalCompositeOperation = "lighter";
+	  for (var e in explosions){
+		explosions[e].draw();
+	  }
+	  ctx.globalCompositeOperation = "source-over"; //set back to default
+  
   
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
   
@@ -633,3 +651,6 @@ function switchTunneling(tunneling){
 	playerFixture.SetFilterData(filter);
 	playerBody.SetAwake();
 }
+
+//do nothing (only used by worker mechanics) TODO delete
+function queueExplosionMessage(x, y){}
