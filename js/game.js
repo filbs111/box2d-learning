@@ -41,7 +41,9 @@ var guiParams={
 
 var worker = new Worker('js/worker.js');
 var transformsFromWorker={objTransforms:{},camera:{x:0,y:0}};
-var windowProcessTimeAvg=0;
+var mssgProcessTimeAvg=0;
+var mssgSendProcessTimeAvg=0;
+var iterProcessTimeAvg=0;
 
 function start(){	
 	stats = new Stats();
@@ -136,7 +138,12 @@ function start(){
 			}
 		
 			var transformMessageProcessTime = window.performance.now() - startTime;
-			windowProcessTimeAvg = windowProcessTimeAvg*0.9 + 0.1*transformMessageProcessTime;	//starts too low but unimportant
+			mssgProcessTimeAvg = mssgProcessTimeAvg*0.9 + 0.1*transformMessageProcessTime;	//starts too low but unimportant
+			mssgSendProcessTimeAvg = mssgSendProcessTimeAvg*0.9 + 0.1*transformsFromWorker.mssgProcessTime;	//starts too low but unimportant
+			iterProcessTimeAvg = iterProcessTimeAvg*0.9 + 0.1*transformsFromWorker.iterTime;	//starts too low but unimportant
+
+			
+			
 		}
 	}
 	
@@ -529,9 +536,11 @@ function draw_world(world, context, remainderFraction) {
   
 	context.fillStyle="#000";
 	ctx.fillText(awaitedUpdatesFromWorker, 10,220 );
-	ctx.fillText(windowProcessTimeAvg.toFixed(4), 10,230 );
+	ctx.fillText(iterProcessTimeAvg.toFixed(4), 10,240 );		//iterating mechanics in worker
+	ctx.fillText(mssgSendProcessTimeAvg.toFixed(4), 10,250 );	//creating a message to send from the worker
+	ctx.fillText(mssgProcessTimeAvg.toFixed(4), 10,230 );		//processing the received message here
 	
-  	  context.fillRect(20, 100, 20, 1);	
+	context.fillRect(20, 100, 20, 1);	
 	  context.fillRect(20, 100+100*adjRemainder, 40, 1);	
 	  context.fillRect(20, 200, 20, 1);	
 

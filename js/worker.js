@@ -20,7 +20,13 @@ self.onmessage = function(e) {
 			init();
 			break;
 		case "iterate":
+			var startTime = performance.now();	//ms
+
 			iterateMechanics(JSON.parse(e.data[1]));
+			
+			var timeNow = performance.now();	//ms
+			var iterProcessTime = timeNow - startTime;
+			
 			var objTransforms={};
 			var objDrawInfo={};
 			var objBoundsInfo={};
@@ -93,6 +99,7 @@ self.onmessage = function(e) {
 				delete existingPoseInfoStringified[ii];
 			}
 			
+			var transformMessageProcessTime = performance.now() - timeNow;
 			
 			postMessage(["transforms",
 			{objTransforms:objTransforms,
@@ -101,6 +108,8 @@ self.onmessage = function(e) {
 			toDelete:Object.keys(existingObjects),
 			camera:camPos,
 			explosions:explosionMessageList,
+			mssgProcessTime:transformMessageProcessTime,
+			iterTime:iterProcessTime,
 			messageNumber:messageNumber++
 			}]);
 			
