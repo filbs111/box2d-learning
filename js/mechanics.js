@@ -55,10 +55,10 @@ var bC;
 var waterLevel = -875/SCALE;
 
 
-var mechanicsFps = 30;
+var mechanicsFps = 15;
 var timeStep = 1000/mechanicsFps;
 var relativeTimescale = 60/mechanicsFps;	//originally tuned for 60fps mechanics
-var maxUpdatesPerFrame = 3;
+var maxUpdatesPerFrame = 2;
 
 var initscount=0;
 
