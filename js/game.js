@@ -143,8 +143,9 @@ function start(){
 	}
 	
 	assetManager.setOnloadFunc(function(){
-		currentTime = (new Date()).getTime();
+		currentTime = window.performance.now(); //(new Date()).getTime();
 		requestAnimationFrame(update);
+		checkInput();
 		worker.postMessage(["guiParams", JSON.stringify(guiParams)]);
 	});
 	assetManager.setAssetsToPreload({
@@ -153,54 +154,63 @@ function start(){
 	
 }
 
-function update(timeNow) {
-   
-   //var timeNow = (new Date()).getTime();
-   var forceCatchup = false;
-   var timeDiff = timeNow-currentTime;
-   timeDiff*= guiParams.paused? 0:1;
-   var updatesRequired = timeDiff/timeStep;
-   var remainderFraction = updatesRequired - Math.floor(updatesRequired);
-   updatesRequired = Math.floor(updatesRequired);
-   if (updatesRequired>maxUpdatesPerFrame){
-	   //console.log("capping num updates to maxUpdatesPerFrame");
-	   updatesRequired = maxUpdatesPerFrame;
-	   currentTime = timeNow;
-	   remainderFraction=0;
-	   //console.log("!");
-   }else{
-	   if (awaitedUpdatesFromWorker>1){	//hack to not let lots of mechanics get queued up
-		   updatesRequired = 0;
-		   currentTime = timeNow;
-		   remainderFraction=0;
-	   }else{
-			currentTime+=timeStep*updatesRequired;
-	   }
-   }
-   if (updatesRequired>0){
-	   var inputObj={
+function checkInput(){
+	//TODO handle case that tab not in use (ie requestAnimationFrame isn't getting called)
+	
+	//do this as often as pos - request a mechanics update from the worker at regular intervals.
+	//var timeNow = (new Date()).getTime();	//todo use higher performance timer
+	var timeNow = window.performance.now();
+	
+	var timeDiff = timeNow-currentTime;
+	timeDiff*= guiParams.paused? 0:1;
+    var updatesRequired = timeDiff/timeStep;
+	updatesRequired = Math.floor(updatesRequired);	//necessary?
+	
+	if (updatesRequired>0){
+		
+		if (updatesRequired>1){	//accept some slowdown
+			updatesRequired=1;
+			console.log("updatesRequired>1 !");
+			currentTime = timeNow;
+		}
+		if (awaitedUpdatesFromWorker>2){
+			updatesRequired=0;
+			console.log("awaiting too many mechanics responses!");
+			currentTime = timeNow;
+		}
+		
+		//just request the one update.
+		var inputObj={
 			turn:keyThing.rightKey() - keyThing.leftKey(),
 			thrust:keyThing.upKey(),
 			bomb:keyThing.bombKey(),
 			turnPlatform:keyThing.downKey(),
 			space:keyThing.keystate(32)
 		}
+
+		for (var ii=0;ii<updatesRequired;ii++){
+			worker.postMessage(["iterate", JSON.stringify(inputObj)]);
+			currentTime+=timeStep;
+			awaitedUpdatesFromWorker++;
+		}
 		
-	   if (updatesRequired>1){
-		   for (var ii=1;ii<updatesRequired;ii++){
-			   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
-			   awaitedUpdatesFromWorker++;
-		   }
-	   }
-	   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
-	   awaitedUpdatesFromWorker++;
-   }
+	}
+	setTimeout(checkInput,15);	//shouldn't spam this - TODO check timer to see when would actually result in taking input and use that val for timeout
+}
+
+function update(timeNow) {
+   
+   var timeDiff = timeNow-currentTime;
+   timeDiff*= guiParams.paused? 0:1;
+   var stepsAhead = timeDiff/timeStep;
+  
    stats.begin();
    tagLandscapeBlocksNearPlayer();
-   draw_world(world, ctx, remainderFraction);
+   draw_world(world, ctx, stepsAhead);
    stats.end();
-   requestAnimationFrame(update);
    
+    requestAnimationFrame(update);
+
 }; // update()
 
 
