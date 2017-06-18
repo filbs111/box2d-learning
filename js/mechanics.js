@@ -349,7 +349,9 @@ function init(){
 
 		//add all bodies to buoyancy controller
 		for (var b = world.GetBodyList(); b; b = b.GetNext()) {
-			bC.AddBody(b);
+			if (!b.clippablePath){
+				bC.AddBody(b);
+			}
 		}
 	   
 	   //copyPositions();	//this may not make sense in worker.
