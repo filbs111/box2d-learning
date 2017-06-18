@@ -37,8 +37,6 @@ var guiParams={
 	paused:false
 }
 
-var worker = new Worker('js/worker.js');
-var transformsFromWorker={objTransforms:{},camera:{x:0,y:0}};
 
 function start(){	
 	stats = new Stats();
@@ -62,23 +60,14 @@ function start(){
 	init();
 	keyThing.setKeydownCallback(82,function(){			//82=R
 		init();
-		worker.postMessage(["init"]);
 	});
 	keyThing.setKeydownCallback(70,function(){			//70=F
 		goFullscreen(canvas);
 	});
 	
-	worker.onmessage=function(e){
-		//console.log("received message from worker : " + e.data);
-		if (e.data[0]=="transforms"){
-			transformsFromWorker = JSON.parse(e.data[1]);
-		}
-	}
-	
 	assetManager.setOnloadFunc(function(){
 		currentTime = (new Date()).getTime();
 		requestAnimationFrame(update);
-		worker.postMessage(["guiParams", JSON.stringify(guiParams)]);
 	});
 	assetManager.setAssetsToPreload({
 		EXPL: settings.EXPLOSION_IMAGE_SRC
@@ -116,12 +105,10 @@ function update(timeNow) {
 	   if (updatesRequired>1){
 		   for (var ii=1;ii<updatesRequired;ii++){
 			   iterateMechanics(inputObj);
-			   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
 		   }
 	   }
 	   copyPositions();
 	   iterateMechanics(inputObj);
-	   worker.postMessage(["iterate", JSON.stringify(inputObj)]);
    }
    stats.begin();
    //debugCtx.setTransform(1, 0, 0, 1, 100, 0);  //can transform debug canvas anyway, but should then also manually clear it
@@ -277,57 +264,6 @@ function draw_world(world, context, remainderFraction) {
 	explosions[e].draw();
   }
   ctx.globalCompositeOperation = "source-over"; //set back to default
-  
-  //draw the player position from the worker. (test mechanics same in both instances)
-  var camPosWorker = transformsFromWorker.camera;
-  ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
-  
-  var objTransforms = transformsFromWorker.objTransforms;
-  var objDrawInfo = transformsFromWorker.objDrawInfo;
-  context.fillStyle="#000";
-  for (id in objTransforms){
-	  var thisTransform = objTransforms[id];
-	  var thisPos= thisTransform.position;
-	  var thisRMat = thisTransform.R;
-	  
-	  for (ss in objDrawInfo[id]){
-		  var shapes = objDrawInfo[id];
-		  for (sss in shapes){
-			thisShape = shapes[sss];
-			switch(thisShape.type){
-				case b2Shape.e_circleShape:
-					ctx.beginPath();
-					ctx.arc(thisPos.x*drawingScale,thisPos.y*drawingScale,thisShape.radius*drawingScale,0,2*Math.PI);
-					ctx.stroke();
-					break;
-				case b2Shape.e_polygonShape:
-					ctx.beginPath();
-					var verts = thisShape.verts;
-					var transformedverts=[];
-					
-					for (var ii=0;ii<verts.length;ii++){
-						var thisVert = verts[ii];
-						transformedverts.push({
-							x:thisPos.x + thisVert.x*thisRMat.col1.x + thisVert.y*thisRMat.col2.x ,
-							y:thisPos.y + thisVert.x*thisRMat.col1.y + thisVert.y*thisRMat.col2.y 
-						});
-					}
-					
-					context.moveTo(transformedverts[verts.length-1].x * drawingScale, 
-									transformedverts[verts.length-1].y * drawingScale);
-					for (var i = 0; i < verts.length; i++) {
-						context.lineTo(transformedverts[i].x * drawingScale, 
-									transformedverts[i].y * drawingScale);
-					}
-					
-					ctx.stroke();
-					break;
-			}
-		  }
-	  }
-	  
-	  ctx.fillText(id, 10+thisPos.x*drawingScale,thisPos.y*drawingScale );
-  }
   
   
   ctx.setTransform(1, 0, 0, 1, 0, 0);  //identity
