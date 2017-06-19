@@ -35,6 +35,8 @@ var guiParams={
 	drill:true,
 	torqueAllSegs:false,
 	paused:false,
+	draw:true,
+	fill:true
 }
 
 var worker = new Worker('js/worker.js');
@@ -42,6 +44,13 @@ var transformsFromWorker={objTransforms:{},camera:{x:0,y:0}};
 var mssgProcessTimeAvg=0;
 var mssgSendProcessTimeAvg=0;
 var iterProcessTimeAvg=0;
+
+function printStats(){
+	console.log("awaitedUpdatesFromWorker:" + awaitedUpdatesFromWorker);
+	console.log("iterProcessTimeAvg:" + iterProcessTimeAvg.toFixed(4));		//iterating mechanics in worker
+	console.log("mssgSendProcessTimeAvg:" + mssgSendProcessTimeAvg.toFixed(4));	//creating a message to send from the worker
+	console.log("mssgProcessTimeAvg: " + mssgProcessTimeAvg.toFixed(4));	
+}
 
 function start(){	
 	stats = new Stats();
@@ -53,6 +62,9 @@ function start(){
 	gui.add(guiParams, 'drill');
 	gui.add(guiParams, 'torqueAllSegs');
 	gui.add(guiParams, 'paused');
+	gui.add(guiParams, 'draw');
+	gui.add(guiParams, 'fill');
+
 	
 	debugCanvas = document.getElementById("b2dCanvas");
     debugCtx = debugCanvas.getContext("2d");
@@ -205,8 +217,10 @@ function update(timeNow) {
    var stepsAhead = timeDiff/timeStep;
   
    stats.begin();
-   tagLandscapeBlocksNearPlayer();
-   draw_world(world, ctx, stepsAhead);
+   if (guiParams.draw){
+	   tagLandscapeBlocksNearPlayer();
+	   draw_world(world, ctx, stepsAhead);
+   }
    stats.end();
    
     requestAnimationFrame(update);
@@ -344,12 +358,16 @@ function draw_world(world, context, remainderFraction) {
 			}
 		}
 		
-		var grd=ctx.createLinearGradient( 0 ,bounds.top*drawingScale/SCALE, 0,bounds.bottom*drawingScale/SCALE);
-		grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
-		grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
-		grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");		
-		context.fillStyle=grd;
-		context.fill();
+		if (guiParams.fill){
+			var grd=ctx.createLinearGradient( 0 ,bounds.top*drawingScale/SCALE, 0,bounds.bottom*drawingScale/SCALE);
+			grd.addColorStop(0,"rgba(200, 200, 200, 0.8)");
+			grd.addColorStop(0.1,"rgba(125, 125, 125, 0.8)");
+			grd.addColorStop(0.95,"rgba(125, 125, 125, 0.8)");		
+			context.fillStyle=grd;
+			context.fill();
+		}else{
+			context.stroke();
+		}
 		
 	  }else{
 		  for (sss in shapes){
@@ -369,7 +387,12 @@ function draw_world(world, context, remainderFraction) {
 					  grd.addColorStop(1,"#883");
 					  context.fillStyle=grd;
 					
-					ctx.fill();
+					if (guiParams.fill){
+						ctx.fill();
+					}else{
+						context.stroke();
+					}
+					
 					break;
 				case b2Shape.e_polygonShape:
 					ctx.beginPath();
@@ -392,7 +415,11 @@ function draw_world(world, context, remainderFraction) {
 					}
 					
 				    context.fillStyle=stdFill;
-					ctx.fill();
+					if (guiParams.fill){
+						ctx.fill();
+					}else{
+						context.stroke();
+					}
 
 					//ctx.stroke();
 					break;
