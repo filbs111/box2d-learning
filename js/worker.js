@@ -11,6 +11,8 @@ var existingDrawInfoAvailable=[];
 var existingPoseInfoStringified=[];
 var messageNumber = 0;		
 
+var lastEndTime;
+
 self.onmessage = function(e) {
 	//postMessage("received message from main : " + e.data[0]);
 	//console.log("received message from main : " + e.data[0]);
@@ -21,7 +23,12 @@ self.onmessage = function(e) {
 			break;
 		case "iterate":
 			var startTime = performance.now();	//ms
+			var downTime=0;
+			if (lastEndTime){
+				downTime = startTime-lastEndTime;
+			}
 
+			
 			iterateMechanics(JSON.parse(e.data[1]));
 			
 			var timeNow = performance.now();	//ms
@@ -116,10 +123,13 @@ self.onmessage = function(e) {
 			explosions:explosionMessageList,
 			mssgProcessTime:transformMessageProcessTime,
 			iterTime:iterProcessTime,
+			downTime:downTime,
 			messageNumber:messageNumber++
 			}]);
 			
 			explosionMessageList=[];
+			
+			lastEndTime = startTime = performance.now();;
 			
 			break;
 		case "guiParams":
