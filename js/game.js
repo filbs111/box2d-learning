@@ -12,7 +12,7 @@ function aspectFitCanvas(evt) {
     var ww = window.innerWidth;
     var wh = window.innerHeight;
 	var desiredAspect=1.6;
-	var pixelRatio=1;		//set to 0.5 to double size of canvas pixels on screen etc
+	var pixelRatio=guiParams.pixelScale;		//set to 0.5 to double size of canvas pixels on screen etc
 	if ( ww  > wh * desiredAspect ) {
 		var cw = wh * desiredAspect;
         canvas.style.height = "" + wh + "px";
@@ -36,7 +36,8 @@ var guiParams={
 	torqueAllSegs:false,
 	paused:false,
 	draw:true,
-	fill:true
+	fill:true,
+	pixelScale:1
 }
 
 var worker = new Worker('js/worker.js');
@@ -66,6 +67,7 @@ function start(){
 	gui.add(guiParams, 'paused');
 	gui.add(guiParams, 'draw');
 	gui.add(guiParams, 'fill');
+	gui.add(guiParams, 'pixelScale', 0.5,2,0.1).onChange(aspectFitCanvas);
 
 	
 	debugCanvas = document.getElementById("b2dCanvas");
