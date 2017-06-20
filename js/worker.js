@@ -56,17 +56,20 @@ self.onmessage = function(e) {
 				//assign a unique id if doesn't already have one
 				if (!b.uniqueId){b.uniqueId=nextId();}
 				
-				var thisTranform = b.GetTransform();
+				var thisPos = b.GetTransform().position;
+				var thisR = b.GetTransform().R;
+				var thisAng = Math.atan2(thisR.col1.y , thisR.col1.x);
+				var thisTransformShortFormat = [ thisPos.x, thisPos.y, ~~((180/Math.PI)*thisAng) ]; //angle in degrees
 				if (!b.clippablePath){
-					var stringifiedTransform = JSON.stringify(thisTranform);
+					var stringifiedTransform = JSON.stringify(thisTransformShortFormat);
 					if ( !existingPoseInfoStringified[b.uniqueId] || existingPoseInfoStringified[b.uniqueId] != stringifiedTransform ) {
-							objTransforms[b.uniqueId]=thisTranform;	//might optimise by only sending x,y for bombs, else x,y,rotation
+							objTransforms[b.uniqueId]=thisTransformShortFormat;	//might optimise by only sending x,y for bombs, else x,y,rotation
 																			// (rotation matrix can be reconstructed)
 							existingPoseInfoStringified[b.uniqueId]=stringifiedTransform;
 					}
 				}else{
 					if (!existingPoseInfoStringified[b.uniqueId]){
-						objTransforms[b.uniqueId]=thisTranform;
+						objTransforms[b.uniqueId]=thisTransformShortFormat;
 						existingPoseInfoStringified[b.uniqueId]=true;
 					}
 				}
@@ -93,7 +96,20 @@ self.onmessage = function(e) {
 					  shapes.push(shapeOut);
 					};
 				}else{	//landscape
-					shapes = b.clippablePath;	//different units to non landscape, but for now just handle differently when drawing.
+					//shapes = b.clippablePath;	//different units to non landscape, but for now just handle differently when drawing.
+					
+					//try shrinking string by rounding paths
+					for (var pp in b.clippablePath){
+						var thisP = b.clippablePath[pp];
+						var newP = [];
+						for (var ii in thisP){
+							var thisPoint = thisP[ii];
+								//newP.push({X:thisPoint.X, Y:thisPoint.Y});
+								newP.push({X:~~thisPoint.X, Y:~~thisPoint.Y});
+						}
+						shapes.push(newP);
+					}
+					//console.log(shapes);
 				}
 				
 				//if (currentDrawInfo != jsonshapes ){
@@ -115,6 +131,7 @@ self.onmessage = function(e) {
 			var transformMessageProcessTime = performance.now() - timeNow;
 			
 			postMessage(["transforms",
+			JSON.stringify(
 			{objTransforms:objTransforms,
 			objDrawInfo:objDrawInfo,
 			objBoundsInfo:objBoundsInfo,
@@ -125,7 +142,9 @@ self.onmessage = function(e) {
 			iterTime:iterProcessTime,
 			downTime:downTime,
 			messageNumber:messageNumber++
-			}]);
+			}
+			)
+			]);
 			
 			explosionMessageList=[];
 			

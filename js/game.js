@@ -37,6 +37,7 @@ var guiParams={
 	paused:false,
 	draw:true,
 	fill:true,
+	logMssgs:false,
 	pixelScale:1
 }
 
@@ -67,8 +68,8 @@ function start(){
 	gui.add(guiParams, 'paused');
 	gui.add(guiParams, 'draw');
 	gui.add(guiParams, 'fill');
-	gui.add(guiParams, 'pixelScale', 0.5,2,0.1).onChange(aspectFitCanvas);
-
+	gui.add(guiParams, 'logMssgs');
+	gui.add(guiParams, 'pixelScale', 0.2,2,0.1).onChange(aspectFitCanvas);
 	
 	debugCanvas = document.getElementById("b2dCanvas");
     debugCtx = debugCanvas.getContext("2d");
@@ -91,6 +92,7 @@ function start(){
 		//console.log("received message from worker : " + e.data);
 		
 		if (evt.data[0]=="transforms"){
+			
 			var startTime = window.performance.now();	//ms
 			
 			//make a copy of existing positions. this is inefficient - better to not do for nonmoving obejcts,
@@ -104,7 +106,17 @@ function start(){
    		    camPosWorkerLast = camPosWorkerNew;
 			camPosWorkerNew = transformsFromWorker.camera;
 			
-			transformsFromWorker = evt.data[1];
+			var jsonString = evt.data[1];
+			if (guiParams.logMssgs){
+				console.log(jsonString);
+				console.log(jsonString.length);
+			}
+			if (typeof jsonString == "string"){
+				transformsFromWorker = JSON.parse(jsonString);
+			}else{
+				transformsFromWorker=jsonString;
+			}
+			//console.log(jsonString.length);
 			
 			//cosmetic explosion iteration
 			for (var e in explosions){
@@ -314,16 +326,19 @@ function draw_world(world, context, remainderFraction) {
 
   for (id in existingPoseInfo){
 	  var thisTransform = existingPoseInfo[id];
-	  var thisPos = thisTransform.position;
+	  var thisPos = {x:thisTransform[0], y: thisTransform[1]};
 	  var interpPos;
       var lastTransform = existingPoseInfoLast[id];
 	  if (lastTransform){
-		var lastPos = lastTransform.position;
+		var lastPos = {x:lastTransform[0], y: lastTransform[1]};	//todo save this result instead of calculating separately for this, last.
 		interpPos= {x: thisPos.x*adjRemainder + lastPos.x*oneMinus,
 					y: thisPos.y*adjRemainder + lastPos.y*oneMinus};
 	  }
 	  
-	  var thisRMat = thisTransform.R;	//TODO interpolate
+	  var r = thisTransform[2] * (Math.PI / 180);
+	  var ct = Math.cos(r);
+	  var st = Math.sin(r);	  
+	  var thisRMat = {col1:{x: ct , y:st }, col2:{x: -st , y:ct}};
 	  
 	  var shapes = existingDrawInfo[id];
 	  	  
