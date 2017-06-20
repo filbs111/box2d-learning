@@ -38,6 +38,7 @@ var guiParams={
 	draw:true,
 	fill:true,
 	logMssgs:false,
+	capInterp:false,
 	pixelScale:1
 }
 
@@ -69,6 +70,7 @@ function start(){
 	gui.add(guiParams, 'draw');
 	gui.add(guiParams, 'fill');
 	gui.add(guiParams, 'logMssgs');
+	gui.add(guiParams, 'capInterp');
 	gui.add(guiParams, 'pixelScale', 0.2,2,0.1).onChange(aspectFitCanvas);
 	
 	debugCanvas = document.getElementById("b2dCanvas");
@@ -300,7 +302,10 @@ function draw_world(world, context, remainderFraction) {
   var adjRemainder = remainderFraction + awaitedUpdatesFromWorker - 0.5;	//0.5 guess- remainderFraction is from 0 to 1, awaitedUpdatesFromWorker is typically 0 or 1.
   
   //cap from 0 to 1 to avoid drawing bullets in walls etc. actually doesn't seem to help. TODO better scheduling. 
-  //adjRemainder = Math.max(0,Math.min(1,adjRemainder));
+  
+  if (guiParams.capInterp){
+	adjRemainder = Math.max(0,Math.min(1,adjRemainder));
+  }
   
   //interpolate
   var oneMinus = 1-adjRemainder;
