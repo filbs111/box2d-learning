@@ -374,9 +374,9 @@ function draw_world(world, context, remainderFraction) {
 			for (var ii=0;ii<numLoops;ii++){
 				thisLoop = cPath[ii];
 				numPoints = thisLoop.length;
-				context.moveTo( thisLoop[0].X * drawingScale/SCALE, thisLoop[0].Y * drawingScale/SCALE);
+				context.moveTo( thisLoop[0][0] * drawingScale/SCALE, thisLoop[0][1] * drawingScale/SCALE);
 				for (var jj=1;jj<numPoints;jj++){
-					context.lineTo( thisLoop[jj].X * drawingScale/SCALE, thisLoop[jj].Y * drawingScale/SCALE);
+					context.lineTo( thisLoop[jj][0] * drawingScale/SCALE, thisLoop[jj][1] * drawingScale/SCALE);
 				}
 				context.closePath();
 			}

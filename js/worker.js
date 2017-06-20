@@ -105,7 +105,7 @@ self.onmessage = function(e) {
 						for (var ii in thisP){
 							var thisPoint = thisP[ii];
 								//newP.push({X:thisPoint.X, Y:thisPoint.Y});
-								newP.push({X:~~thisPoint.X, Y:~~thisPoint.Y});
+								newP.push([~~thisPoint.X, ~~thisPoint.Y]);
 						}
 						shapes.push(newP);
 					}
