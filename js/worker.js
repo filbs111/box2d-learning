@@ -13,6 +13,11 @@ var messageNumber = 0;
 
 var lastEndTime;
 
+var spamString = "";
+for (var ss = 0; ss<100;ss++){
+	spamString+=Math.random()*1000;
+}
+
 self.onmessage = function(e) {
 	//postMessage("received message from main : " + e.data[0]);
 	//console.log("received message from main : " + e.data[0]);
@@ -28,8 +33,8 @@ self.onmessage = function(e) {
 				downTime = startTime-lastEndTime;
 			}
 
-			
-			iterateMechanics(JSON.parse(e.data[1]));
+			var inputObj=JSON.parse(e.data[1]);
+			iterateMechanics(inputObj);
 			
 			var timeNow = performance.now();	//ms
 			var iterProcessTime = timeNow - startTime;
@@ -150,6 +155,9 @@ self.onmessage = function(e) {
 				objToSend.boundsInfo=objBoundsInfo;
 			}
 				
+			if (inputObj.sendSpam){
+				objToSend.spam=spamString;
+			}
 			
 			postMessage(["transforms",
 			JSON.stringify(objToSend)

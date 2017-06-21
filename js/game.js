@@ -39,6 +39,7 @@ var guiParams={
 	fill:true,
 	logMssgs:false,
 	capInterp:false,
+	sendSpam:false,
 	pixelScale:1
 }
 
@@ -71,6 +72,7 @@ function start(){
 	gui.add(guiParams, 'fill');
 	gui.add(guiParams, 'logMssgs');
 	gui.add(guiParams, 'capInterp');
+	gui.add(guiParams, 'sendSpam');
 	gui.add(guiParams, 'pixelScale', 0.2,2,0.1).onChange(aspectFitCanvas);
 	
 	debugCanvas = document.getElementById("b2dCanvas");
@@ -217,7 +219,10 @@ function checkInput(){
 			turnPlatform:keyThing.downKey(),
 			space:keyThing.keystate(32)
 		}
-
+		if(guiParams.sendSpam){
+			inputObj.sendSpam = true
+		}
+		
 		for (var ii=0;ii<updatesRequired;ii++){
 			worker.postMessage(["iterate", JSON.stringify(inputObj)]);
 			currentTime+=timeStep;
