@@ -59,7 +59,7 @@ self.onmessage = function(e) {
 				var thisPos = b.GetTransform().position;
 				var thisR = b.GetTransform().R;
 				var thisAng = Math.atan2(thisR.col1.y , thisR.col1.x);
-				var thisTransformShortFormat = [ thisPos.x, thisPos.y, ~~((180/Math.PI)*thisAng) ]; //angle in degrees
+				var thisTransformShortFormat = [ +thisPos.x.toFixed(2), +thisPos.y.toFixed(2), ~~((180/Math.PI)*thisAng) ]; //angle in degrees
 				if (!b.clippablePath){
 					var stringifiedTransform = JSON.stringify(thisTransformShortFormat);
 					if ( !existingPoseInfoStringified[b.uniqueId] || existingPoseInfoStringified[b.uniqueId] != stringifiedTransform ) {
@@ -130,20 +130,29 @@ self.onmessage = function(e) {
 			
 			var transformMessageProcessTime = performance.now() - timeNow;
 			
-			postMessage(["transforms",
-			JSON.stringify(
-			{objTransforms:objTransforms,
-			objDrawInfo:objDrawInfo,
-			objBoundsInfo:objBoundsInfo,
-			toDelete:Object.keys(existingObjects),
-			camera:camPos,
-			explosions:explosionMessageList,
-			mssgProcessTime:transformMessageProcessTime,
-			iterTime:iterProcessTime,
-			downTime:downTime,
-			messageNumber:messageNumber++
+			var objToSend = {transforms:objTransforms,
+			camera:[+camPos.x.toFixed(2),+camPos.y.toFixed(2)],
+			mssgProcessTime:+transformMessageProcessTime.toFixed(2),
+			iterTime:+iterProcessTime.toFixed(2),
+			downTime:+downTime.toFixed(2),
+			mssgNum:messageNumber++
 			}
-			)
+			if (Object.keys(objDrawInfo).length>0){
+				objToSend.drawInfo=objDrawInfo;
+			}
+			if (explosionMessageList.length >0){
+				objToSend.explosions=explosionMessageList;
+			}
+			if (Object.keys(existingObjects).length>0){
+				objToSend.toDelete=Object.keys(existingObjects);
+			}
+			if (Object.keys(objBoundsInfo).length>0){
+				objToSend.boundsInfo=objBoundsInfo;
+			}
+				
+			
+			postMessage(["transforms",
+			JSON.stringify(objToSend)
 			]);
 			
 			explosionMessageList=[];

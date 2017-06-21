@@ -106,7 +106,7 @@ function start(){
 			awaitedUpdatesFromWorker--;
 			
    		    camPosWorkerLast = camPosWorkerNew;
-			camPosWorkerNew = transformsFromWorker.camera;
+			camPosWorkerNew = {x:transformsFromWorker.camera[0], y:transformsFromWorker.camera[1]};
 			
 			var jsonString = evt.data[1];
 			if (guiParams.logMssgs){
@@ -133,11 +133,11 @@ function start(){
 				//possibly TODO delete existingBoundsInfo[id]
 			}
 			
-			var objTransforms = transformsFromWorker.objTransforms;
-			var objDrawInfo = transformsFromWorker.objDrawInfo;
-			var objBoundsInfo = transformsFromWorker.objBoundsInfo;
+			var objTransforms = transformsFromWorker.transforms;
+			var objDrawInfo = transformsFromWorker.drawInfo;
+			var objBoundsInfo = transformsFromWorker.boundsInfo;
 
-			if (transformsFromWorker.messageNumber<lastMessageNumber++){alert("messages out of order!!!");};
+			if (transformsFromWorker.mssgNum<lastMessageNumber++){alert("messages out of order!!!");};
 			
 			for (id in objTransforms){
 			  var thisTransform = objTransforms[id];
