@@ -52,6 +52,8 @@ var mssgSendProcessTimeAvg=0;
 var iterProcessTimeAvg=0;
 var downTimeAvg=0;
 
+var svgns = "http://www.w3.org/2000/svg";
+
 function printStats(){
 	console.log("awaitedUpdatesFromWorker:" + awaitedUpdatesFromWorker);
 	console.log("mssgProcessTimeAvg: " + mssgProcessTimeAvg.toFixed(4));
@@ -125,6 +127,8 @@ function start(){
 				delete existingPoseInfo[id];
 				delete existingDrawInfo[id];
 				//possibly TODO delete existingBoundsInfo[id]
+				svgcanvas.removeChild(svgObjects[id]);
+				delete svgObjects[id];
 			}
 			
 			var objTransforms = transformsFromWorker.objTransforms;
@@ -144,6 +148,13 @@ function start(){
 			  if (!shapes){alert("shapes is false!")}
 			  existingDrawInfo[id] = shapes;
 			  //console.log("pos : " + Object.keys(objTransforms).length + " , draw : " + Object.keys(objDrawInfo).length + " , delete : " + toDelete.length );
+			  
+			  //note only 1 svg shape per object at the mo
+			  var newshape = document.createElementNS(svgns,"circle");
+			  newshape.setAttributeNS(null, "r", 20);
+			  newshape.setAttributeNS(null, "fill", "green");
+			  svgcanvas.appendChild(newshape);
+			  svgObjects[id]=newshape;
 			}
 			for (id in objBoundsInfo){
 			  var shapes = objDrawInfo[id];
@@ -246,6 +257,7 @@ var existingDrawInfo=[];
 var existingBoundsInfo=[];
 var existingPoseInfo=[];
 var existingPoseInfoLast=[];
+var svgObjects=[];
 var lastMessageNumber =-1;
 var camPosWorkerLast = {x:0,y:0}
 var camPosWorkerNew = {x:0,y:0}
@@ -316,7 +328,8 @@ function draw_world(world, context, remainderFraction) {
 	  bottom: (drawingScale*camPosWorker.y + canvas.height/2)/(drawingScale/SCALE)
   }
   
-  ctx.setTransform(1, 0, 0, 1, canvas.width/2-drawingScale*camPosWorker.x, canvas.height/2-drawingScale*camPosWorker.y);
+  var transf = {x:canvas.width/2-drawingScale*camPosWorker.x, y:canvas.height/2-drawingScale*camPosWorker.y}
+  ctx.setTransform(1, 0, 0, 1, transf.x, transf.y);
   
   var stdFill="#aaa";
 
@@ -382,6 +395,12 @@ function draw_world(world, context, remainderFraction) {
 		}
 		
 	  }else{
+		  
+		  //draw svg
+		  var svgShape = svgObjects[id];
+		  svgShape.setAttributeNS(null, "cx", interpPos.x*drawingScale + transf.x);
+		  svgShape.setAttributeNS(null, "cy", interpPos.y*drawingScale + transf.y);
+		  
 		  for (sss in shapes){
 			thisShape = shapes[sss];
 			switch(thisShape.type){
