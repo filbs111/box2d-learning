@@ -12,3 +12,11 @@ canvas {
   background:#aff;
   background-color:white;
 }
+
+svg {
+  display:block;
+  margin:0px auto 0;
+  border:0px;
+  background:#aff;
+  background-color:white;
+}

@@ -1,6 +1,7 @@
 var debugCanvas;
 var debugCtx;
 var canvas;
+var svgcanvas;
 var ctx;
 var stats;
 
@@ -19,12 +20,16 @@ function aspectFitCanvas(evt) {
         canvas.style.width = "" + cw + "px";
 		canvas.height = wh*pixelRatio;
 		canvas.width = cw*pixelRatio;
+		svgcanvas.style.height = "" + wh + "px";
+		svgcanvas.style.width = "" + cw + "px";
     } else {
 		var ch = ww / desiredAspect;
         canvas.style.width = "" + ww + "px";
         canvas.style.height = "" + ch + "px";
 		canvas.width = ww*pixelRatio;
 		canvas.height = ch*pixelRatio;
+		svgcanvas.style.width = "" + ww + "px";
+		svgcanvas.height = "" + ch + "px";
     }
 	canvas.scale = canvas.width / 1000;	//apply some scale factor to drawing which is 1 for width 1000px
     drawingScale = (SCALE/25)*15*canvas.scale;
@@ -76,6 +81,9 @@ function start(){
 
 	canvas = document.getElementById("canvas2d");
     ctx = canvas.getContext("2d");
+	
+	svgcanvas = document.getElementById("svgcanvas");
+	
 	aspectFitCanvas();
 	
 	init();
