@@ -2,6 +2,8 @@ var debugCanvas;
 var debugCtx;
 var canvas;
 var svgcanvas;
+var svgtransform;
+
 var ctx;
 var stats;
 
@@ -29,7 +31,7 @@ function aspectFitCanvas(evt) {
 		canvas.width = ww*pixelRatio;
 		canvas.height = ch*pixelRatio;
 		svgcanvas.style.width = "" + ww + "px";
-		svgcanvas.height = "" + ch + "px";
+		svgcanvas.style.height = "" + ch + "px";
     }
 	canvas.scale = canvas.width / 1000;	//apply some scale factor to drawing which is 1 for width 1000px
     drawingScale = (SCALE/25)*15*canvas.scale;
@@ -90,6 +92,7 @@ function start(){
     ctx = canvas.getContext("2d");
 	
 	svgcanvas = document.getElementById("svgcanvas");
+	svgtransform = document.getElementById("svgtransform");
 	
 	aspectFitCanvas();
 	
@@ -143,7 +146,7 @@ function start(){
 				delete existingPoseInfo[id];
 				delete existingDrawInfo[id];
 				//possibly TODO delete existingBoundsInfo[id]
-				svgcanvas.removeChild(svgObjects[id]);
+				svgtransform.removeChild(svgObjects[id]);
 				delete svgObjects[id];
 			}
 			
@@ -169,7 +172,7 @@ function start(){
 			  var newshape = document.createElementNS(svgns,"circle");
 			  newshape.setAttributeNS(null, "r", 20);
 			  newshape.setAttributeNS(null, "fill", "green");
-			  svgcanvas.appendChild(newshape);
+			  svgtransform.appendChild(newshape);
 			  svgObjects[id]=newshape;
 			}
 			for (id in objBoundsInfo){
@@ -355,6 +358,10 @@ function draw_world(world, context, remainderFraction) {
   
   var stdFill="#aaa";
 
+  var transfStr = "translate("+Math.round(transf.x)+"px,"+Math.round(transf.y)+"px)";
+  //console.log("tried to set transform: " + transfStr );
+  svgtransform.style.transform=transfStr;
+  
   for (id in existingPoseInfo){
 	  var thisTransform = existingPoseInfo[id];
 	  var thisPos = {x:thisTransform[0], y: thisTransform[1]};
@@ -372,7 +379,7 @@ function draw_world(world, context, remainderFraction) {
 	  var thisRMat = {col1:{x: ct , y:st }, col2:{x: -st , y:ct}};
 	  
 	  var shapes = existingDrawInfo[id];
-	  	  
+	  	 		 
 		 
 	if (interpPos){
  
@@ -423,8 +430,9 @@ function draw_world(world, context, remainderFraction) {
 		  
 		  //draw svg
 		  var svgShape = svgObjects[id];
-		  svgShape.setAttributeNS(null, "cx", interpPos.x*drawingScale + transf.x);
-		  svgShape.setAttributeNS(null, "cy", interpPos.y*drawingScale + transf.y);
+		  svgShape.setAttributeNS(null, "cx", interpPos.x*drawingScale);
+		  svgShape.setAttributeNS(null, "cy", interpPos.y*drawingScale);
+		  
 		  
 		  for (sss in shapes){
 			thisShape = shapes[sss];
