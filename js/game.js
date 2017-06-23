@@ -42,6 +42,9 @@ var guiParams={
 	paused:false,
 	draw:true,
 	fill:true,
+	logMssgs:false,
+	capInterp:false,
+	sendSpam:false,
 	pixelScale:1
 }
 
@@ -74,8 +77,10 @@ function start(){
 	gui.add(guiParams, 'paused');
 	gui.add(guiParams, 'draw');
 	gui.add(guiParams, 'fill');
-	gui.add(guiParams, 'pixelScale', 0.5,2,0.1).onChange(aspectFitCanvas);
-
+	gui.add(guiParams, 'logMssgs');
+	gui.add(guiParams, 'capInterp');
+	gui.add(guiParams, 'sendSpam');
+	gui.add(guiParams, 'pixelScale', 0.2,2,0.1).onChange(aspectFitCanvas);
 	
 	debugCanvas = document.getElementById("b2dCanvas");
     debugCtx = debugCanvas.getContext("2d");
@@ -101,6 +106,7 @@ function start(){
 		//console.log("received message from worker : " + e.data);
 		
 		if (evt.data[0]=="transforms"){
+			
 			var startTime = window.performance.now();	//ms
 			
 			//make a copy of existing positions. this is inefficient - better to not do for nonmoving obejcts,
@@ -112,9 +118,19 @@ function start(){
 			awaitedUpdatesFromWorker--;
 			
    		    camPosWorkerLast = camPosWorkerNew;
-			camPosWorkerNew = transformsFromWorker.camera;
+			camPosWorkerNew = {x:transformsFromWorker.camera[0], y:transformsFromWorker.camera[1]};
 			
-			transformsFromWorker = evt.data[1];
+			var jsonString = evt.data[1];
+			if (guiParams.logMssgs){
+				console.log(jsonString);
+				console.log(jsonString.length);
+			}
+			if (typeof jsonString == "string"){
+				transformsFromWorker = JSON.parse(jsonString);
+			}else{
+				transformsFromWorker=jsonString;
+			}
+			//console.log(jsonString.length);
 			
 			//cosmetic explosion iteration
 			for (var e in explosions){
@@ -131,11 +147,11 @@ function start(){
 				delete svgObjects[id];
 			}
 			
-			var objTransforms = transformsFromWorker.objTransforms;
-			var objDrawInfo = transformsFromWorker.objDrawInfo;
-			var objBoundsInfo = transformsFromWorker.objBoundsInfo;
+			var objTransforms = transformsFromWorker.transforms;
+			var objDrawInfo = transformsFromWorker.drawInfo;
+			var objBoundsInfo = transformsFromWorker.boundsInfo;
 
-			if (transformsFromWorker.messageNumber<lastMessageNumber++){alert("messages out of order!!!");};
+			if (transformsFromWorker.mssgNum<lastMessageNumber++){alert("messages out of order!!!");};
 			
 			for (id in objTransforms){
 			  var thisTransform = objTransforms[id];
@@ -222,7 +238,10 @@ function checkInput(){
 			turnPlatform:keyThing.downKey(),
 			space:keyThing.keystate(32)
 		}
-
+		if(guiParams.sendSpam){
+			inputObj.sendSpam = true
+		}
+		
 		for (var ii=0;ii<updatesRequired;ii++){
 			worker.postMessage(["iterate", JSON.stringify(inputObj)]);
 			currentTime+=timeStep;
@@ -308,7 +327,10 @@ function draw_world(world, context, remainderFraction) {
   var adjRemainder = remainderFraction + awaitedUpdatesFromWorker - 0.5;	//0.5 guess- remainderFraction is from 0 to 1, awaitedUpdatesFromWorker is typically 0 or 1.
   
   //cap from 0 to 1 to avoid drawing bullets in walls etc. actually doesn't seem to help. TODO better scheduling. 
-  //adjRemainder = Math.max(0,Math.min(1,adjRemainder));
+  
+  if (guiParams.capInterp){
+	adjRemainder = Math.max(0,Math.min(1,adjRemainder));
+  }
   
   //interpolate
   var oneMinus = 1-adjRemainder;
@@ -335,16 +357,19 @@ function draw_world(world, context, remainderFraction) {
 
   for (id in existingPoseInfo){
 	  var thisTransform = existingPoseInfo[id];
-	  var thisPos = thisTransform.position;
+	  var thisPos = {x:thisTransform[0], y: thisTransform[1]};
 	  var interpPos;
       var lastTransform = existingPoseInfoLast[id];
 	  if (lastTransform){
-		var lastPos = lastTransform.position;
+		var lastPos = {x:lastTransform[0], y: lastTransform[1]};	//todo save this result instead of calculating separately for this, last.
 		interpPos= {x: thisPos.x*adjRemainder + lastPos.x*oneMinus,
 					y: thisPos.y*adjRemainder + lastPos.y*oneMinus};
 	  }
 	  
-	  var thisRMat = thisTransform.R;	//TODO interpolate
+	  var r = thisTransform[2] * (Math.PI / 180);
+	  var ct = Math.cos(r);
+	  var st = Math.sin(r);	  
+	  var thisRMat = {col1:{x: ct , y:st }, col2:{x: -st , y:ct}};
 	  
 	  var shapes = existingDrawInfo[id];
 	  	  
@@ -375,9 +400,9 @@ function draw_world(world, context, remainderFraction) {
 			for (var ii=0;ii<numLoops;ii++){
 				thisLoop = cPath[ii];
 				numPoints = thisLoop.length;
-				context.moveTo( thisLoop[0].X * drawingScale/SCALE, thisLoop[0].Y * drawingScale/SCALE);
+				context.moveTo( thisLoop[0][0] * drawingScale/SCALE, thisLoop[0][1] * drawingScale/SCALE);
 				for (var jj=1;jj<numPoints;jj++){
-					context.lineTo( thisLoop[jj].X * drawingScale/SCALE, thisLoop[jj].Y * drawingScale/SCALE);
+					context.lineTo( thisLoop[jj][0] * drawingScale/SCALE, thisLoop[jj][1] * drawingScale/SCALE);
 				}
 				context.closePath();
 			}
