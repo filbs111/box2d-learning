@@ -64,7 +64,7 @@ self.onmessage = function(e) {
 				var thisPos = b.GetTransform().position;
 				var thisR = b.GetTransform().R;
 				var thisAng = Math.atan2(thisR.col1.y , thisR.col1.x);
-				var thisTransformShortFormat = [ +thisPos.x.toFixed(2), +thisPos.y.toFixed(2), ~~((180/Math.PI)*thisAng) ]; //angle in degrees
+				var thisTransformShortFormat = [ +thisPos.x.toFixed(2), +thisPos.y.toFixed(2), ~~((1800/Math.PI)*thisAng) ]; //angle in degrees
 				if (!b.clippablePath){
 					var stringifiedTransform = JSON.stringify(thisTransformShortFormat);
 					if ( !existingPoseInfoStringified[b.uniqueId] || existingPoseInfoStringified[b.uniqueId] != stringifiedTransform ) {

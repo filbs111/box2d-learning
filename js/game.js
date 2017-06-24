@@ -402,7 +402,7 @@ function draw_world(world, context, remainderFraction) {
 					y: thisPos.y*adjRemainder + lastPos.y*oneMinus};
 	  }
 	  
-	  var r = thisTransform[2] * (Math.PI / 180);
+	  var r = thisTransform[2] * (Math.PI / 1800);
 	  var ct = Math.cos(r);
 	  var st = Math.sin(r);	  
 	  var thisRMat = {col1:{x: ct , y:st }, col2:{x: -st , y:ct}};
