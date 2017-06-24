@@ -162,6 +162,12 @@ function start(){
 				  existingPoseInfo[id] = thisTransform;
 			  }
 			}
+			
+			for (id in objBoundsInfo){
+			  var shapes = objDrawInfo[id];
+			  existingBoundsInfo[id] = objBoundsInfo[id];
+			}
+			
 			for (id in objDrawInfo){
 			  var shapes = objDrawInfo[id];
 			  if (!shapes){alert("shapes is false!")}
@@ -169,15 +175,38 @@ function start(){
 			  //console.log("pos : " + Object.keys(objTransforms).length + " , draw : " + Object.keys(objDrawInfo).length + " , delete : " + toDelete.length );
 			  
 			  //note only 1 svg shape per object at the mo
-			  var newshape = document.createElementNS(svgns,"circle");
-			  newshape.setAttributeNS(null, "r", 20);
-			  newshape.setAttributeNS(null, "fill", "green");
-			  svgtransform.appendChild(newshape);
-			  svgObjects[id]=newshape;
-			}
-			for (id in objBoundsInfo){
-			  var shapes = objDrawInfo[id];
-			  existingBoundsInfo[id] = objBoundsInfo[id];
+			  if (existingBoundsInfo[id]){
+				  var newshape = document.createElementNS(svgns,"path");
+				  
+				  // M starts parth absolute. L, l absolute, relative line to, V,v vertical, H,h horizonal
+				  var dString="";
+				  for (pp in objDrawInfo[id]){
+					  thisP = objDrawInfo[id][pp];
+					  //console.log(thisP);
+					  var pointStrings=[];
+					  for (var ii in thisP){
+						  pointStrings[ii]=thisP[ii].join(" ");
+					  }
+					  dString+= "M" + pointStrings.join("L")+"z ";
+				  }
+				  console.log(dString);
+				  
+				  newshape.setAttributeNS(null, "d", dString);
+				  newshape.setAttributeNS(null, "fill", "gray");
+				  
+				}else{
+				  var newshape = document.createElementNS(svgns,"circle");
+				  newshape.setAttributeNS(null, "r", 20);
+				  newshape.setAttributeNS(null, "fill", "green");
+				  svgtransform.appendChild(newshape);
+				  svgObjects[id]=newshape;
+				}
+				
+				if (svgObjects[id]){
+					svgtransform.removeChild(svgObjects[id]);
+				}
+				svgtransform.appendChild(newshape);
+				svgObjects[id]=newshape;				  
 			}
 			
 			var newExplosions=transformsFromWorker.explosions;
@@ -428,12 +457,6 @@ function draw_world(world, context, remainderFraction) {
 		
 	  }else{
 		  
-		  //draw svg
-		  var svgShape = svgObjects[id];
-		  svgShape.setAttributeNS(null, "cx", interpPos.x*drawingScale);
-		  svgShape.setAttributeNS(null, "cy", interpPos.y*drawingScale);
-		  
-		  
 		  for (sss in shapes){
 			thisShape = shapes[sss];
 			switch(thisShape.type){
@@ -491,9 +514,15 @@ function draw_world(world, context, remainderFraction) {
 		  }
 	  }
 	  
+		//TODO only set this if has changed (basically when update position sent from worker, but complicated because interpolating position)
+		if (!id.bounds){ //not a landscape block
+			var svgShape = svgObjects[id];
+			svgShape.setAttributeNS(null, "cx", (interpPos.x*drawingScale).toFixed(2));	//todo send integer val from worker
+			svgShape.setAttributeNS(null, "cy", (interpPos.y*drawingScale).toFixed(2));
+		}
 		//ctx.fillText(id, 10+interpPos.x*drawingScale,interpPos.y*drawingScale );
-	  } 
-	  
+	  }
+
   }
   
   
