@@ -521,10 +521,9 @@ function draw_world(world, context, remainderFraction) {
 	  }
 	  
 		//TODO only set this if has changed (basically when update position sent from worker, but complicated because interpolating position)
-		if (!id.bounds){ //not a landscape block
+		if (!bounds){ //not a landscape block
 			var svgShape = svgObjects[id];
-			svgShape.setAttributeNS(null, "cx", (interpPos.x*drawingScale).toFixed(2));	//todo send integer val from worker
-			svgShape.setAttributeNS(null, "cy", (interpPos.y*drawingScale).toFixed(2));
+			svgShape.style.transform = "translate("+(interpPos.x*SCALE).toFixed(2)+"px,"+(interpPos.y*SCALE).toFixed(2)+"px)";
 		}
 		//ctx.fillText(id, 10+interpPos.x*drawingScale,interpPos.y*drawingScale );
 	  }
