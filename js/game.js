@@ -180,14 +180,19 @@ function start(){
 				  
 				  // M starts parth absolute. L, l absolute, relative line to, V,v vertical, H,h horizonal
 				  var dString="";
+				  var currentPoint;
+				  var newPoint;
 				  for (pp in objDrawInfo[id]){
 					  thisP = objDrawInfo[id][pp];
-					  //console.log(thisP);
 					  var pointStrings=[];
+					  currentPoint=[0,0]
 					  for (var ii in thisP){
-						  pointStrings[ii]=thisP[ii].join(" ");
+						  newPoint = thisP[ii];
+						  pointStrings[ii]=[newPoint[0]-currentPoint[0], newPoint[1]-currentPoint[1]];
+						  currentPoint=newPoint;
 					  }
-					  dString+= "M" + pointStrings.join("L")+"z ";
+					  currentPoint
+					  dString+= "M" + pointStrings.join("l")+"z ";
 				  }
 				  console.log(dString);
 				  
