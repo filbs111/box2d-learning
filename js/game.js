@@ -198,39 +198,38 @@ function start(){
 				  newshape.setAttributeNS(null, "fill", "gray");
 				  
 				}else{
-					/*
-				  var newshape = document.createElementNS(svgns,"ellipse");
-				  newshape.setAttributeNS(null, "rx", 10);
-				  newshape.setAttributeNS(null, "ry", 20);
-				  newshape.setAttributeNS(null, "fill", "green");
-				  */
+					
+				  if (objDrawInfo[id][0] && (objDrawInfo[id][0].type == b2Shape.e_circleShape)){ //TODO ensure objDrawInfo[id][0] always defined
+					  
+					  newshape = document.createElementNS(svgns,"circle");
+					  newshape.setAttributeNS(null, "r", 100*objDrawInfo[id][0].radius);
+					  newshape.setAttributeNS(null, "fill", "blue");
 				  
-				  //as prev but scaled up and different points format. TODO standardise path format and scale coming from worker (landscape and not)
-				  newshape = document.createElementNS(svgns,"path");
+				  }else{
+					  //as prev but scaled up and different points format. TODO standardise path format and scale coming from worker (landscape and not)
+					  newshape = document.createElementNS(svgns,"path");
 
-				  // M starts parth absolute. L, l absolute, relative line to, V,v vertical, H,h horizonal
-				  var dString="";
-				  var currentPoint;
-				  var newPoint;
-				  //console.log(objDrawInfo[id][0]["verts"]);
-				  for (pp in objDrawInfo[id]){
-					  //console.log(pp);
-					  //console.log(objDrawInfo[id][pp]);
-					  thisP = objDrawInfo[id][pp].verts;
-					  var pointStrings=[];
-					  currentPoint=[0,0];
-					  for (var ii in thisP){
-						  newPoint = [thisP[ii].x*SCALE , thisP[ii].y*SCALE];
-						  pointStrings[ii]=[newPoint[0]-currentPoint[0], newPoint[1]-currentPoint[1]];
-						  currentPoint=newPoint;
-					  }
-					  currentPoint
-					  dString+= "M" + pointStrings.join("l")+"z ";
-				  }				  
-				  newshape.setAttributeNS(null, "d", dString);
-				  newshape.setAttributeNS(null, "fill", "green");
-				  
-				  
+					  // M starts parth absolute. L, l absolute, relative line to, V,v vertical, H,h horizonal
+					  var dString="";
+					  var currentPoint;
+					  var newPoint;
+					  for (pp in objDrawInfo[id]){
+						  //console.log(pp);
+						  //console.log(objDrawInfo[id][pp]);
+						  thisP = objDrawInfo[id][pp].verts;
+						  var pointStrings=[];
+						  currentPoint=[0,0];
+						  for (var ii in thisP){
+							  newPoint = [thisP[ii].x*SCALE , thisP[ii].y*SCALE];
+							  pointStrings[ii]=[newPoint[0]-currentPoint[0], newPoint[1]-currentPoint[1]];
+							  currentPoint=newPoint;
+						  }
+						  currentPoint
+						  dString+= "M" + pointStrings.join("l")+"z ";
+					  }				  
+					  newshape.setAttributeNS(null, "d", dString);
+					  newshape.setAttributeNS(null, "fill", "green");
+				}
 				  
 				}
 				
