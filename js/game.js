@@ -390,11 +390,12 @@ function draw_world(world, context, remainderFraction) {
   var transf = {x:canvas.width/2-drawingScale*camPosWorker.x, y:canvas.height/2-drawingScale*camPosWorker.y}
   ctx.setTransform(1, 0, 0, 1, transf.x, transf.y);
   
-  var stdFill="#aaa";
-
-  var transfStr = "translate("+Math.round(transf.x)+"px,"+Math.round(transf.y)+"px)";
+  var scalefact = drawingScale/SCALE;
+  var transfStr = "translate("+Math.round(transf.x)+"px,"+Math.round(transf.y)+"px)" + "scale("+scalefact+","+scalefact+")"
   //console.log("tried to set transform: " + transfStr );
   svgtransform.style.transform=transfStr;
+  
+  var stdFill="#aaa";
   
   for (id in existingPoseInfo){
 	  var thisTransform = existingPoseInfo[id];
