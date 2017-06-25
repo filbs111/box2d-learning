@@ -200,8 +200,9 @@ function start(){
 				  newshape.setAttributeNS(null, "fill", "gray");
 				  
 				}else{
-				  var newshape = document.createElementNS(svgns,"circle");
-				  newshape.setAttributeNS(null, "r", 20);
+				  var newshape = document.createElementNS(svgns,"ellipse");
+				  newshape.setAttributeNS(null, "rx", 10);
+				  newshape.setAttributeNS(null, "ry", 20);
 				  newshape.setAttributeNS(null, "fill", "green");
 				  svgtransform.appendChild(newshape);
 				  svgObjects[id]=newshape;
@@ -408,9 +409,10 @@ function draw_world(world, context, remainderFraction) {
 					y: thisPos.y*adjRemainder + lastPos.y*oneMinus};
 	  }
 	  
-	  var r = thisTransform[2] * (Math.PI / 1800);
-	  var ct = Math.cos(r);
-	  var st = Math.sin(r);	  
+	  var angDeg = thisTransform[2] / 10;
+	  var ang = angDeg * (Math.PI / 180);
+	  var ct = Math.cos(ang);
+	  var st = Math.sin(ang);	  
 	  var thisRMat = {col1:{x: ct , y:st }, col2:{x: -st , y:ct}};
 	  
 	  var shapes = existingDrawInfo[id];
@@ -523,7 +525,8 @@ function draw_world(world, context, remainderFraction) {
 		//TODO only set this if has changed (basically when update position sent from worker, but complicated because interpolating position)
 		if (!bounds){ //not a landscape block
 			var svgShape = svgObjects[id];
-			svgShape.style.transform = "translate("+(interpPos.x*SCALE).toFixed(2)+"px,"+(interpPos.y*SCALE).toFixed(2)+"px)";
+			svgShape.style.transform = 	"translate("+(interpPos.x*SCALE).toFixed(2)+"px,"+(interpPos.y*SCALE).toFixed(2)+"px)" 
+									+ " rotate(" + angDeg + "deg)";
 		}
 		//ctx.fillText(id, 10+interpPos.x*drawingScale,interpPos.y*drawingScale );
 	  }
