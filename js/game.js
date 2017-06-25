@@ -173,10 +173,10 @@ function start(){
 			  if (!shapes){alert("shapes is false!")}
 			  existingDrawInfo[id] = shapes;
 			  //console.log("pos : " + Object.keys(objTransforms).length + " , draw : " + Object.keys(objDrawInfo).length + " , delete : " + toDelete.length );
-			  
+			  var newshape;
 			  //note only 1 svg shape per object at the mo
 			  if (existingBoundsInfo[id]){
-				  var newshape = document.createElementNS(svgns,"path");
+				  newshape = document.createElementNS(svgns,"path");
 				  
 				  // M starts parth absolute. L, l absolute, relative line to, V,v vertical, H,h horizonal
 				  var dString="";
@@ -185,7 +185,7 @@ function start(){
 				  for (pp in objDrawInfo[id]){
 					  thisP = objDrawInfo[id][pp];
 					  var pointStrings=[];
-					  currentPoint=[0,0]
+					  currentPoint=[0,0];
 					  for (var ii in thisP){
 						  newPoint = thisP[ii];
 						  pointStrings[ii]=[newPoint[0]-currentPoint[0], newPoint[1]-currentPoint[1]];
@@ -193,19 +193,45 @@ function start(){
 					  }
 					  currentPoint
 					  dString+= "M" + pointStrings.join("l")+"z ";
-				  }
-				  console.log(dString);
-				  
+				  }				  
 				  newshape.setAttributeNS(null, "d", dString);
 				  newshape.setAttributeNS(null, "fill", "gray");
 				  
 				}else{
+					/*
 				  var newshape = document.createElementNS(svgns,"ellipse");
 				  newshape.setAttributeNS(null, "rx", 10);
 				  newshape.setAttributeNS(null, "ry", 20);
 				  newshape.setAttributeNS(null, "fill", "green");
-				  svgtransform.appendChild(newshape);
-				  svgObjects[id]=newshape;
+				  */
+				  
+				  //as prev but scaled up and different points format. TODO standardise path format and scale coming from worker (landscape and not)
+				  newshape = document.createElementNS(svgns,"path");
+
+				  // M starts parth absolute. L, l absolute, relative line to, V,v vertical, H,h horizonal
+				  var dString="";
+				  var currentPoint;
+				  var newPoint;
+				  //console.log(objDrawInfo[id][0]["verts"]);
+				  for (pp in objDrawInfo[id]){
+					  //console.log(pp);
+					  //console.log(objDrawInfo[id][pp]);
+					  thisP = objDrawInfo[id][pp].verts;
+					  var pointStrings=[];
+					  currentPoint=[0,0];
+					  for (var ii in thisP){
+						  newPoint = [thisP[ii].x*SCALE , thisP[ii].y*SCALE];
+						  pointStrings[ii]=[newPoint[0]-currentPoint[0], newPoint[1]-currentPoint[1]];
+						  currentPoint=newPoint;
+					  }
+					  currentPoint
+					  dString+= "M" + pointStrings.join("l")+"z ";
+				  }				  
+				  newshape.setAttributeNS(null, "d", dString);
+				  newshape.setAttributeNS(null, "fill", "green");
+				  
+				  
+				  
 				}
 				
 				if (svgObjects[id]){
