@@ -43,6 +43,7 @@ var guiParams={
 	torqueAllSegs:false,
 	paused:false,
 	draw:true,
+	drawsvg:true,
 	fill:true,
 	logMssgs:false,
 	capInterp:false,
@@ -78,6 +79,7 @@ function start(){
 	gui.add(guiParams, 'torqueAllSegs');
 	gui.add(guiParams, 'paused');
 	gui.add(guiParams, 'draw');
+	gui.add(guiParams, 'drawsvg');
 	gui.add(guiParams, 'fill');
 	gui.add(guiParams, 'logMssgs');
 	gui.add(guiParams, 'capInterp');
@@ -326,6 +328,10 @@ function update(timeNow) {
 	   tagLandscapeBlocksNearPlayer();
 	   draw_world(world, ctx, stepsAhead);
    }
+   if (guiParams.drawsvg){
+	   draw_world_svg(world, ctx, stepsAhead);
+   }
+   
    stats.end();
    
     requestAnimationFrame(update);
@@ -415,11 +421,6 @@ function draw_world(world, context, remainderFraction) {
   
   var transf = {x:canvas.width/2-drawingScale*camPosWorker.x, y:canvas.height/2-drawingScale*camPosWorker.y}
   ctx.setTransform(1, 0, 0, 1, transf.x, transf.y);
-  
-  var scalefact = drawingScale/SCALE;
-  var transfStr = "translate("+Math.round(transf.x)+"px,"+Math.round(transf.y)+"px)" + "scale("+scalefact+","+scalefact+")"
-  //console.log("tried to set transform: " + transfStr );
-  svgtransform.style.transform=transfStr;
   
   var stdFill="#aaa";
   
@@ -547,12 +548,6 @@ function draw_world(world, context, remainderFraction) {
 		  }
 	  }
 	  
-		//TODO only set this if has changed (basically when update position sent from worker, but complicated because interpolating position)
-		if (!bounds){ //not a landscape block
-			var svgShape = svgObjects[id];
-			svgShape.style.transform = 	"translate("+(interpPos.x*SCALE).toFixed(2)+"px,"+(interpPos.y*SCALE).toFixed(2)+"px)" 
-									+ " rotate(" + angDeg + "deg)";
-		}
 		//ctx.fillText(id, 10+interpPos.x*drawingScale,interpPos.y*drawingScale );
 	  }
 
@@ -681,6 +676,67 @@ function draw_world(world, context, remainderFraction) {
   //this will create the outline of a shape
   //context.stroke();
   } 
+  
+}
+
+function draw_world_svg(world, context, remainderFraction) {
+	
+   //adjust remainderFraction to account for awaitedUpdatesFromWorker (default value is true if updates are returned instantaneously)
+  var adjRemainder = remainderFraction + awaitedUpdatesFromWorker - 0.5;	//0.5 guess- remainderFraction is from 0 to 1, awaitedUpdatesFromWorker is typically 0 or 1.
+  
+  if (guiParams.capInterp){
+	adjRemainder = Math.max(0,Math.min(1,adjRemainder));
+  }
+  
+  //interpolate
+  var oneMinus = 1-adjRemainder;
+  
+  var camPosWorker = { x: camPosWorkerNew.x*adjRemainder + camPosWorkerLast.x*oneMinus,
+					y: camPosWorkerNew.y*adjRemainder + camPosWorkerLast.y*oneMinus};
+  
+  //TODO expect should use some different remainderFraction. existing doesn't work here because sending iterate message and receiving result is separate.
+  
+  
+  var transf = {x:canvas.width/2-drawingScale*camPosWorker.x, y:canvas.height/2-drawingScale*camPosWorker.y}  
+  var scalefact = drawingScale/SCALE;
+  var transfStr = "translate("+Math.round(transf.x)+"px,"+Math.round(transf.y)+"px)" + "scale("+scalefact+","+scalefact+")"
+  //console.log("tried to set transform: " + transfStr );
+  svgtransform.style.transform=transfStr;
+    
+  for (id in existingPoseInfo){
+	  var thisTransform = existingPoseInfo[id];
+	  var thisPos = {x:thisTransform[0], y: thisTransform[1]};
+	  var interpPos;
+      var lastTransform = existingPoseInfoLast[id];
+	  if (lastTransform){
+		var lastPos = {x:lastTransform[0], y: lastTransform[1]};	//todo save this result instead of calculating separately for this, last.
+		interpPos= {x: thisPos.x*adjRemainder + lastPos.x*oneMinus,
+					y: thisPos.y*adjRemainder + lastPos.y*oneMinus};
+	  }
+	  
+	  var angDeg = thisTransform[2] / 10;
+	  var ang = angDeg * (Math.PI / 180);
+	  var ct = Math.cos(ang);
+	  var st = Math.sin(ang);	  
+	  var thisRMat = {col1:{x: ct , y:st }, col2:{x: -st , y:ct}};
+	  
+	  var shapes = existingDrawInfo[id];
+	  	 		 
+		 
+	if (interpPos){
+ 
+	  var bounds = existingBoundsInfo[id];
+	  
+		//TODO only set this if has changed (basically when update position sent from worker, but complicated because interpolating position)
+		if (!bounds){ //not a landscape block
+			var svgShape = svgObjects[id];
+			svgShape.style.transform = 	"translate("+(interpPos.x*SCALE).toFixed(2)+"px,"+(interpPos.y*SCALE).toFixed(2)+"px)" 
+									+ " rotate(" + angDeg + "deg)";
+		}
+		//ctx.fillText(id, 10+interpPos.x*drawingScale,interpPos.y*drawingScale );
+	  }
+
+  }
   
 }
 
